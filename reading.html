@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sabiá — leitura conectada entre livros."
+    />
+    <title>Sabiá — Leitura</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="reading.css" />
+  </head>
+  <body class="reading-page">
+    <div class="app-shell reading-shell">
+      <header class="site-header reading-header">
+        <div>
+          <p class="brand-name">Sabiá</p>
+          <p class="brand-tagline">Conexões entre livros</p>
+        </div>
+
+        <nav class="mode-switch" aria-label="Modo de navegação">
+          <a href="index.html">Consulta</a>
+          <a class="active" href="reading.html" aria-current="page">Leitura</a>
+        </nav>
+
+        <p class="library-summary">2 livros · 814 trechos</p>
+      </header>
+
+      <main class="reading-layout">
+        <section class="reader-zone" aria-label="Leitura do livro">
+          <div class="reader-topbar">
+            <div>
+              <p class="eyebrow">Livro aberto</p>
+              <h1>A Arte da Guerra</h1>
+              <p class="book-context">Sun Tzu <span>·</span> Página 46 de 128</p>
+            </div>
+            <label class="book-picker">
+              <span>Trocar livro</span>
+              <select id="book-picker">
+                <option>A Arte da Guerra</option>
+                <option>As 48 leis do poder</option>
+              </select>
+            </label>
+          </div>
+
+          <article class="book-page" aria-label="Texto da página 46">
+            <p class="page-number">46</p>
+            <div id="book-text" class="book-text" tabindex="0">
+              <p>
+                Conhecer o inimigo e conhecer a si mesmo é a base de toda
+                vitória. Se conheces o inimigo e não conheces a ti mesmo, as
+                tuas chances de vencer ou perder serão iguais.
+              </p>
+              <p>
+                Se não conheces o inimigo nem a ti mesmo, é certo que, em todas
+                as batalhas, estarás em perigo. Por isso, o general prudente
+                procura primeiro compreender as condições da luta.
+              </p>
+              <p>
+                Aquele que sabe quando pode combater e quando não pode será
+                vitorioso. Aquele que conhece como usar tanto as forças
+                pequenas quanto as grandes também vencerá.
+              </p>
+            </div>
+            <div id="selection-action" class="selection-action" hidden>
+              <button id="connect-selection" type="button">Ver conexões</button>
+            </div>
+          </article>
+
+          <footer class="reader-footer">
+            <button class="page-button" type="button">← Anterior</button>
+            <div class="progress-wrap">
+              <span>Página 46</span>
+              <div class="progress-track" aria-label="Progresso do livro">
+                <span></span>
+              </div>
+              <span>128</span>
+            </div>
+            <button class="page-button" type="button">Próxima →</button>
+          </footer>
+        </section>
+
+        <aside id="connections-panel" class="connections-panel" aria-label="Conexões">
+          <div class="connections-header">
+            <div>
+              <p class="eyebrow">Leitura conectada</p>
+              <h2>Conexões</h2>
+            </div>
+            <button id="close-panel" class="panel-control" type="button" aria-label="Recolher painel">
+              ×
+            </button>
+          </div>
+
+          <div id="connection-content" class="connection-content"></div>
+        </aside>
+
+        <button id="open-panel" class="open-panel-button" type="button" hidden>
+          Abrir conexões
+        </button>
+      </main>
+    </div>
+
+    <script src="reading.js"></script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sabiá — leitura e conexões entre livros." />
+    <title>Sabiá — Leitura</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="workspace-page">
+    <div class="workspace-shell">
+      <header class="workspace-header">
+        <div class="workspace-brand">
+          <p class="brand-name">Sabiá</p>
+          <p class="brand-tagline">Conexões entre livros</p>
+        </div>
+        <div class="workspace-header-meta">
+          <span>Modo leitura</span>
+          <span class="header-separator">·</span>
+          <span>2 livros · 814 trechos</span>
+        </div>
+      </header>
+
+      <main class="workspace-layout">
+        <aside id="connections-rail" class="connections-rail" aria-label="Busca e conexões">
+          <div class="rail-header">
+            <div>
+              <p class="eyebrow">Ferramenta de consulta</p>
+              <h1>Conexões</h1>
+            </div>
+            <span class="rail-dot" aria-hidden="true"></span>
+          </div>
+
+          <div class="rail-content">
+            <section id="search-view" class="rail-view">
+              <p class="rail-intro">
+                Encontre o que outros autores dizem sobre uma ideia do livro.
+              </p>
+              <div class="rail-field">
+                <label for="query-text">Trecho para buscar</label>
+                <textarea id="query-text" rows="5" placeholder="Cole aqui um trecho ou selecione uma passagem no livro"></textarea>
+              </div>
+              <div class="rail-row">
+                <div class="rail-field rail-field-grow">
+                  <label for="source-book">Livro de origem</label>
+                  <select id="source-book">
+                    <option value="">Livro aberto · A Arte da Guerra</option>
+                  </select>
+                </div>
+                <div class="rail-field rail-k-field">
+                  <label for="connections">Nº conexões</label>
+                  <input id="connections" type="number" min="1" max="10" value="3" />
+                </div>
+              </div>
+              <button id="search-button" class="primary-button rail-search-button" type="button">
+                Buscar conexões
+              </button>
+              <p class="rail-hint">Ou selecione um trecho diretamente no livro.</p>
+            </section>
+
+            <section id="connection-view" class="rail-view" hidden aria-live="polite"></section>
+          </div>
+        </aside>
+
+        <section id="book-view" class="book-workspace" aria-label="Livro aberto">
+          <div class="book-toolbar">
+            <div>
+              <p class="eyebrow">Leitura</p>
+              <h2>A Arte da Guerra</h2>
+              <p class="book-author">Sun Tzu <span>·</span> Página 46 de 128</p>
+            </div>
+            <label class="book-picker">
+              <span>Livro</span>
+              <select id="book-picker">
+                <option>A Arte da Guerra</option>
+                <option>As 48 leis do poder</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="open-book" aria-label="Livro aberto na página 46">
+            <article class="book-page book-page-left">
+              <span class="book-page-number">46</span>
+              <div class="book-copy" id="book-text" tabindex="0">
+                <p>
+                  Conhecer o inimigo e conhecer a si mesmo é a base de toda
+                  vitória. Se conheces o inimigo e não conheces a ti mesmo, as
+                  tuas chances de vencer ou perder serão iguais.
+                </p>
+                <p>
+                  Se não conheces o inimigo nem a ti mesmo, é certo que, em
+                  todas as batalhas, estarás em perigo. Por isso, o general
+                  prudente procura primeiro compreender as condições da luta.
+                </p>
+              </div>
+              <div id="selection-action" class="selection-action" hidden>
+                <button id="connect-selection" type="button">Ver conexões</button>
+              </div>
+            </article>
+            <article class="book-page book-page-right" aria-label="Continuação da página">
+              <span class="book-page-number">47</span>
+              <div class="book-copy">
+                <p>
+                  Aquele que sabe quando pode combater e quando não pode será
+                  vitorioso. Aquele que conhece como usar tanto as forças
+                  pequenas quanto as grandes também vencerá.
+                </p>
+                <p>
+                  O general que compreende a si mesmo e ao adversário não se
+                  deixa levar pelo acaso. Ele observa, espera e escolhe o
+                  momento em que a ação se torna necessária.
+                </p>
+                <p class="page-ending">— Sun Tzu</p>
+              </div>
+            </article>
+          </div>
+
+          <footer class="book-footer">
+            <button class="page-button" type="button">← Anterior</button>
+            <div class="book-progress">
+              <span>Página 46</span>
+              <div class="progress-track"><span></span></div>
+              <span>128</span>
+            </div>
+            <button class="page-button" type="button">Próxima →</button>
+          </footer>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
