@@ -1,5 +1,5 @@
 .reading-page {
-  background: #f6f7f3;
+  background: var(--bg);
 }
 
 .reading-shell {
@@ -24,7 +24,7 @@
 .mode-switch a {
   padding: 6px 11px;
   border-radius: 5px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
   text-decoration: none;
 }
@@ -32,8 +32,8 @@
 .mode-switch a:hover,
 .mode-switch a.active {
   background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-weight: 700;
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .reading-layout {
@@ -74,7 +74,7 @@
 
 .book-context span {
   padding: 0 5px;
-  color: #b3bbb1;
+  color: var(--ink-faint);
 }
 
 .book-picker {
@@ -99,30 +99,31 @@
 .page-number {
   max-width: 680px;
   margin: 0 auto 25px;
-  color: #a3aca0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 12px;
+  color: var(--ink);
+  font-family: var(--font-data);
+  font-size: 14px;
+  font-weight: 500;
   text-align: center;
 }
 
 .book-text {
   max-width: 680px;
   margin: 0 auto;
-  color: #30372f;
-  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink-book);
+  font-family: var(--font-book);
   font-size: 19px;
-  line-height: 1.85;
+  line-height: 1.7;
   outline: none;
 }
 
 .book-text p {
-  margin: 0 0 25px;
+  margin: 0 0 var(--space-4);
 }
 
 .book-text::selection,
 .book-text *::selection {
-  background: #c8dfc9;
-  color: #203a26;
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 .selection-action {
@@ -130,21 +131,21 @@
   z-index: 2;
   transform: translate(-50%, 8px);
   padding: 4px;
-  border: 1px solid #bed0be;
-  border-radius: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   background: var(--surface);
-  box-shadow: 0 7px 18px rgba(38, 52, 39, 0.14);
+  box-shadow: var(--shadow-pop);
 }
 
 .selection-action button {
   padding: 7px 10px;
   border: 0;
-  border-radius: 5px;
-  background: var(--accent);
-  color: #fff;
+  border-radius: var(--radius-control);
+  background: var(--accent-btn);
+  color: var(--accent-ink);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .reader-footer {
@@ -160,29 +161,33 @@
   padding: 7px 0;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--ink);
   cursor: pointer;
   font-size: 12px;
 }
 
 .page-button:hover {
-  color: var(--accent-dark);
+  color: var(--ink);
+  background: var(--surface-3);
 }
 
 .progress-wrap {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: var(--font-data);
+  font-size: 13px;
 }
 
 .progress-track {
   width: 150px;
-  height: 3px;
+  height: 2px;
   overflow: hidden;
-  border-radius: 4px;
-  background: #e1e7df;
+  border-radius: 0;
+  background: var(--line);
 }
 
 .progress-track span {
@@ -198,9 +203,9 @@
   align-self: start;
   min-height: 620px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: 0 9px 24px rgba(38, 52, 39, 0.08);
+  box-shadow: none;
 }
 
 .connections-header {
@@ -221,16 +226,17 @@
   width: 30px;
   height: 30px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface-muted);
-  color: var(--muted);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink);
   cursor: pointer;
   font-size: 20px;
   line-height: 1;
 }
 
 .panel-control:hover {
-  color: var(--accent-dark);
+  color: var(--ink);
+  background: var(--surface-3);
 }
 
 .connection-content {
@@ -240,9 +246,9 @@
 .selected-quote {
   margin: 0 0 22px;
   padding-left: 13px;
-  border-left: 2px solid #b7cbb8;
-  color: var(--muted);
-  font-family: Georgia, "Times New Roman", serif;
+  border-left: 2px solid var(--line-strong);
+  color: var(--ink-muted);
+  font-family: var(--font-book);
   font-size: 14px;
   font-style: italic;
   line-height: 1.6;
@@ -250,7 +256,7 @@
 
 .panel-invite {
   padding: 80px 8px 20px;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 13px;
   text-align: center;
 }
@@ -270,10 +276,10 @@
 
 .connection-card {
   padding: 18px;
-  border: 1px solid #d5e0d5;
+  border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .connection-card .card-summary {
@@ -308,14 +314,14 @@
   border: 0;
   border-top: 1px solid var(--line);
   background: transparent;
-  color: var(--muted);
+  color: var(--ink-muted);
   cursor: pointer;
   font-size: 12px;
   text-align: left;
 }
 
 .evidence-toggle:hover {
-  color: var(--accent-dark);
+  color: var(--accent);
 }
 
 .panel-evidence {
@@ -339,7 +345,7 @@
 }
 
 .panel-hit-meta {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 11px;
 }
 
@@ -349,16 +355,16 @@
 
 .panel-hit-score {
   float: right;
-  color: var(--accent-dark);
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--ink-faint);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .panel-hit-text {
   clear: both;
   padding-top: 5px;
-  color: #4d564d;
-  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink-muted);
+  font-family: var(--font-book);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -373,7 +379,7 @@
 }
 
 .panel-error {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 13px;
 }
 
@@ -482,12 +488,50 @@
     display: block;
     padding: 10px 13px;
     border: 0;
-    border-radius: 7px;
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 7px 18px rgba(38, 52, 39, 0.18);
+    border-radius: var(--radius-control);
+    background: var(--accent-btn);
+    color: var(--accent-ink);
+    box-shadow: var(--shadow-pop);
     cursor: pointer;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 500;
   }
+}
+
+.reader-zone,
+.connections-panel {
+  background: transparent;
+}
+
+.book-page {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.reader-topbar h1,
+.connections-header h2 {
+  color: var(--ink);
+}
+
+.reader-footer {
+  border-color: var(--line);
+}
+
+.reader-footer .page-button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+}
+
+.reader-footer .page-button:hover {
+  background: var(--surface-3);
+}
+
+.book-text {
+  color: var(--ink-book);
+}
+
+.panel-skeleton .skeleton-line {
+  background: var(--surface-2);
+  background-image: none;
 }
