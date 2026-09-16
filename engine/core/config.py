@@ -78,6 +78,7 @@ class Settings:
     quota_daily_texts: int
     embedding_batch_chars: int
     embedding_batch_delay: int
+    embedding_texts_per_minute: int
     database_url: str
     supabase_url: str
     supabase_publishable_key: str
@@ -127,6 +128,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         quota_daily_texts=_int_value(env, "QUOTA_DAILY_TEXTS", 1000),
         embedding_batch_chars=_int_value(env, "EMBEDDING_BATCH_CHARS", 16000),
         embedding_batch_delay=_int_value(env, "EMBEDDING_BATCH_DELAY", 10),
+        embedding_texts_per_minute=_int_value(env, "EMBEDDING_TEXTS_PER_MINUTE", 100),
         database_url=database_url,
         supabase_url=_text_value(env, "SUPABASE_URL"),
         supabase_publishable_key=_text_value(env, "SUPABASE_PUBLISHABLE_KEY"),
