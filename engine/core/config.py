@@ -48,6 +48,14 @@ def _text_value(env: Mapping[str, str], name: str, default: str = "") -> str:
 def _validate_database_url(url: str) -> None:
     if not url.startswith(("postgresql://", "postgres://")):
         raise ConfigError("DATABASE_URL precisa começar com postgresql://")
+    # O modelo do .env.example usa <host> e <ref-do-projeto>. Sem esta checagem,
+    # um endereço de exemplo passa na validação de formato e só falha depois,
+    # como erro de rede ("failed to resolve host").
+    if "<" in url or ">" in url:
+        raise ConfigError(
+            "DATABASE_URL ainda contém texto de exemplo (<>). Copie a string "
+            "completa do painel do Supabase."
+        )
     if "pgbouncer" in url:
         # Aprendido na prática: o parâmetro é do ecossistema Node e o cliente
         # Python o recusa com "invalid URI query parameter".
@@ -72,8 +80,9 @@ class Settings:
     embedding_batch_delay: int
     database_url: str
     supabase_url: str
-    supabase_anon_key: str
-    supabase_service_role_key: str
+    supabase_publishable_key: str
+    supabase_secret_key: str
+    supabase_jwks_url: str
 
     @property
     def embedding_dimensions(self) -> int:
@@ -120,8 +129,9 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         embedding_batch_delay=_int_value(env, "EMBEDDING_BATCH_DELAY", 10),
         database_url=database_url,
         supabase_url=_text_value(env, "SUPABASE_URL"),
-        supabase_anon_key=_text_value(env, "SUPABASE_ANON_KEY"),
-        supabase_service_role_key=_text_value(env, "SUPABASE_SERVICE_ROLE_KEY"),
+        supabase_publishable_key=_text_value(env, "SUPABASE_PUBLISHABLE_KEY"),
+        supabase_secret_key=_text_value(env, "SUPABASE_SECRET_KEY"),
+        supabase_jwks_url=_text_value(env, "SUPABASE_JWKS_URL"),
     )
 
 

@@ -50,6 +50,13 @@ def test_pooler_param_is_rejected_with_explanation():
     assert "pgbouncer" in str(error.value)
 
 
+def test_placeholder_url_is_rejected():
+    """Endereço de exemplo passa na checagem de formato; precisa ser recusado."""
+    with pytest.raises(ConfigError) as error:
+        load_settings({**VALID_ENV, "DATABASE_URL": "postgresql://u:p@<host>:6543/postgres"})
+    assert "exemplo" in str(error.value)
+
+
 def test_non_postgres_url_is_rejected():
     with pytest.raises(ConfigError):
         load_settings({**VALID_ENV, "DATABASE_URL": "mysql://x"})
