@@ -1,7 +1,11 @@
-"""Ponto de entrada das funções do Vercel.
+"""Ponto de entrada da função.
 
-Expõe a aplicação do motor como uma única função, com as rotas definidas em
-`engine/api`. Todo o roteamento fica dentro da aplicação.
+O Vercel transforma cada arquivo sob `api/` em um endereço; por isso este
+arquivo só expõe a aplicação — o motor mora em `engine/`.
 """
 
-from engine.api.app import app  # noqa: F401
+from __future__ import annotations
+
+from engine.api.app import create_app
+
+app = create_app()

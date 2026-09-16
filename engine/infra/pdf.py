@@ -36,6 +36,9 @@ MIN_SAMPLE_PAGES = 5
 # de sumário ("Introdução ......... 9").
 DOTTED_LINE = "..."
 
+# Uma linha só é candidata a cabeçalho se aparecer em mais de uma página.
+MIN_REPEATS = 2
+
 # Controles que não são separação normal de linha: tabulação e quebras contam
 # como texto, não como lixo.
 PLAIN_CONTROLS = {"\n", "\r", "\t"}
@@ -137,7 +140,7 @@ def page_signals(text: str) -> PageSignals:
     )
 
 
-def read_book(path: str | Path) -> Book:
+def read_book(path: str | Path | bytes) -> Book:
     """Lê o arquivo e devolve as páginas.
 
     Recusa o que não dá para ler: arquivo ausente, arquivo que não é PDF, PDF
@@ -145,12 +148,18 @@ def read_book(path: str | Path) -> Book:
     acontece antes de qualquer custo — foi a ausência desse portão que queimou
     cota com centenas de trechos de lixo no POC.
     """
-    arquivo = Path(path)
-    if not arquivo.is_file():
-        raise FileUnavailable(f"arquivo não encontrado: {arquivo.name}")
-
+    # O envio do cliente chega como bytes: abrir direto evita passar por
+    # arquivo temporário no meio do caminho.
     try:
-        documento = pymupdf.open(arquivo)
+        if isinstance(path, bytes):
+            documento = pymupdf.open(stream=path, filetype="pdf")
+        else:
+            arquivo = Path(path)
+            if not arquivo.is_file():
+                raise FileUnavailable(f"arquivo não encontrado: {arquivo.name}")
+            documento = pymupdf.open(arquivo)
+    except FileUnavailable:
+        raise
     except Exception as erro:  # pymupdf levanta tipos próprios para cada defeito
         raise FileUnavailable(f"não foi possível abrir o arquivo: {erro}") from erro
 
@@ -197,8 +206,12 @@ def remove_repeated_lines(pages: tuple[Page, ...]) -> tuple[Page, ...]:
         # página não é sinal de cabeçalho.
         contagem.update({normalizada(linha) for linha in pagina.text.splitlines() if linha.strip()})
 
+    # Repetição precisa ser repetição: numa página só não existe cabeçalho — e
+    # num livro de uma página a maioria deixaria tudo "repetido".
     maioria = len(pages) / 2
-    repetidas = {linha for linha, vezes in contagem.items() if vezes > maioria}
+    repetidas = {
+        linha for linha, vezes in contagem.items() if vezes >= MIN_REPEATS and vezes > maioria
+    }
     if not repetidas:
         return pages
 

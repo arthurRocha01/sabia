@@ -37,6 +37,13 @@ class SabiaError(Exception):
         return f"[{self.code}] {self.message}"
 
 
+class Unauthorized(SabiaError):
+    """Pedido sem sessão válida. O leitor entra de novo antes de continuar."""
+
+    code = "unauthorized"
+    http_status = 401
+
+
 class InvalidInput(SabiaError):
     """Pedido malformado ou fora dos limites (teto de palavras, número de conexões)."""
 
@@ -96,6 +103,7 @@ class IngestionFailed(SabiaError):
 # Códigos do contrato, na ordem em que aparecem no documento. Serve de
 # referência para a camada de entrada e para os testes.
 CONTRACT_CODES = (
+    "unauthorized",
     "invalid_input",
     "book_not_found",
     "file_unavailable",

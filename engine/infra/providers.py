@@ -155,3 +155,58 @@ class GeminiEmbeddings:
         if not achado:
             return 20.0
         return min(float(achado.group(1)), 60.0)
+
+
+class DeepSeekInterpretation:
+    """Síntese e classificação da relação, num pedido só.
+
+    O tempo é declarado no contrato (o card tem até 15 s), então o pedido tem
+    teto próprio e **nenhuma** tentativa extra por dentro do cliente: retry
+    cego é o que fazia o card pendurar minutos sem uma linha de registro.
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str,
+        base_url: str = "https://api.deepseek.com",
+        timeout: int = 60,
+        attempts: int = 2,
+        client: Any | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.model = model
+        self.timeout = timeout
+        self.attempts = attempts
+        self._sleep = sleep
+        if client is not None:
+            self._client: Any = client
+        else:
+            from openai import OpenAI
+
+            self._client = OpenAI(api_key=api_key, base_url=base_url, max_retries=0)
+
+    def interpret(self, prompt: str) -> str:
+        """Devolve o texto que o modelo respondeu. Interpretar é do domínio."""
+        for tentativa in range(self.attempts):
+            try:
+                resposta = self._client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    timeout=self.timeout,
+                )
+                return str(resposta.choices[0].message.content or "")
+            except Exception as erro:  # o cliente levanta tipos próprios
+                codigo = getattr(erro, "status_code", None) or getattr(erro, "code", None)
+                ultima = tentativa + 1 >= self.attempts
+                if codigo in (429, *SERVER_ERRORS) and not ultima:
+                    self._sleep(2**tentativa)
+                    continue
+                if isinstance(erro, TimeoutError):
+                    raise TimedOut("a interpretação não voltou a tempo") from erro
+                raise ProviderUnavailable(
+                    "o provedor de interpretação não respondeu",
+                    detail=f"erro {codigo}" if codigo else type(erro).__name__,
+                ) from erro
+        raise ProviderUnavailable("o provedor de interpretação não respondeu")  # pragma: no cover

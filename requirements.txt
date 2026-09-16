@@ -7,7 +7,9 @@ uvicorn[standard]          # apenas para desenvolvimento local
 pymupdf==1.28.2
 google-genai==2.22.0       # embeddings
 openai==2.54.0             # interpretação (API compatível com a OpenAI)
-psycopg[binary,pool]       # Postgres, com a conexão por pooler
+psycopg[binary,pool]
+pyjwt[crypto]
+python-multipart       # Postgres, com a conexão por pooler
 python-dotenv
 pytest
 ruff                       # desenvolvimento: formatação e análise estática

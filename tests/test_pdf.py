@@ -156,6 +156,14 @@ def test_remove_repeated_lines_keeps_line_repeated_in_one_page_only():
     assert "SOLTO" in remove_repeated_lines(paginas)[0].text
 
 
+def test_remove_repeated_lines_keeps_a_single_page_book_intact(tmp_path):
+    """Num livro de uma página não existe cabeçalho: o texto fica inteiro."""
+    livro = read_book(_pdf_com_texto(tmp_path / "uma-pagina.pdf", [TEXTO]))
+    limpas = remove_repeated_lines(livro.pages)
+    assert limpas[0].text.strip()
+    assert limpas[0].signals.words == livro.pages[0].signals.words
+
+
 def test_remove_repeated_lines_is_identity_without_repetition(tmp_path):
     paginas = [_linhas_do_autor(i) for i in range(5)]
     livro = read_book(_pdf_com_texto(tmp_path / "livro.pdf", paginas))
