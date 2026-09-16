@@ -1,0 +1,1 @@
+"""As operações do sistema."""

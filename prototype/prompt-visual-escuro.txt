@@ -1,0 +1,199 @@
+===============================================================================
+PROMPT — APARÊNCIA DO SABIÁ: CARVÃO E LUZ (azul-tinta)
+===============================================================================
+Cole este texto inteiro no Copilot Chat, com a pasta ~/code/sabia aberta.
+
+O QUE É ESTE TRABALHO: só a aparência. A estrutura e a mecânica da view atual
+estão aprovadas e ficam CONGELADAS: cabeçalho com o nome e o seletor de modo,
+zona de leitura com as páginas, painel de conexões, rodapé de navegação e
+paginação, e os seis estados (inicial, carregando, resultado, sem conexão,
+erro). Nada disso muda de lugar, de tamanho ou de comportamento. O que muda é
+a pele: cor, tipografia, borda, espaçamento interno, estados de foco.
+
+A versão aprovada está salva no git na tag view-v1 — use-a como referência. Ao
+final, isto deve valer: `git diff view-v1 --stat` mostrando alteração
+concentrada nos arquivos de estilo, sem mudança estrutural no HTML.
+
+Não há backend, API, banco ou integração aqui. O conteúdo continua sendo o mock.
+
+-------------------------------------------------------------------------------
+1. A DIREÇÃO (é a personalidade que define o desenho, não o gosto do momento)
+-------------------------------------------------------------------------------
+O Sabiá é uma ferramenta de leitura para quem ESTUDA: alguém que lê com lápis
+na mão, compara fontes, anota. A cara tem de ser de ferramenta de trabalho:
+escura, precisa, tipográfica, sem enfeite. Nada de cor por decoração, nada de
+sombra macia, nada de gradiente, nada de cantos muito arredondados, nada de
+ícone ou emoji enfeitando título.
+
+Hierarquia se faz com três coisas, nesta ordem: tipografia, espaço e uma borda
+de 1px. Nunca com cor, nunca com peso de sombra.
+
+A única cor com força é o AZUL-TINTA, e ele só existe onde há ação ou
+classificação: botão primário, modo ativo, foco de campo, selo de relação e o
+texto selecionado. Se o azul aparecer em qualquer outro lugar, está errado.
+
+Consequência prática do fundo escuro: sombra não lê. Onde hoje existe elevação,
+use uma superfície um degrau mais clara mais uma borda de 1px.
+
+-------------------------------------------------------------------------------
+2. TOKENS (use SOMENTE estes; os contrastes abaixo foram medidos e passam)
+-------------------------------------------------------------------------------
+:root {
+  color-scheme: dark;
+
+  /* superfícies, do fundo até o elemento em foco */
+  --bg:            #0E1116;
+  --surface:       #151A21;
+  --surface-2:     #1B222B;
+  --surface-3:     #202832;   /* hover de controles e de itens */
+
+  /* linhas: divisores são discretos de propósito */
+  --line:          #262F3A;
+  --line-strong:   #333D4A;
+
+  /* texto */
+  --ink:           #E6EAF0;   /* 15,7:1 no fundo — texto principal            */
+  --ink-book:      #DDE4EE;   /* corpo do livro, um passo mais suave          */
+  --ink-muted:     #9AA4B2;   /* 6,9 a 7,5:1 — secundário                     */
+  --ink-faint:     #7A8698;   /* 4,7 a 5,1:1 — o menos importante da tela     */
+
+  /* acento: azul-tinta */
+  --accent:        #5B8DEF;   /* 5,4 a 5,9:1 como texto/ícone                 */
+  --accent-ink:    #0B0F14;   /* texto SOBRE o azul                           */
+  --accent-btn:    #4C86F0;   /* fundo do botão: 5,5:1 com --accent-ink       */
+  --accent-hover:  #5B8DEF;   /* 6,0:1 com --accent-ink                       */
+  --accent-soft:   #23314A;   /* fundo selecionado: 10,8:1 com --ink          */
+
+  /* único estado de erro, usado uma vez e sem drama */
+  --danger:        #F87171;   /* 6,3:1 na superfície                          */
+
+  /* selos: texto claro sobre tinta do próprio tom a 14% da superfície */
+  --badge-complement-ink: #6EE7B7;  --badge-complement-tint: #10B981;  /* 9,2:1 */
+  --badge-contradict-ink: #FCA5A5;  --badge-contradict-tint: #EF4444;  /* 8,0:1 */
+  --badge-nuance-ink:     #FCD34D;  --badge-nuance-tint:     #F59E0B;  /* 9,6:1 */
+  --badge-same-ink:       #93C5FD;  --badge-same-tint:       #3B82F6;  /* 8,1:1 */
+
+  /* forma: raio pequeno, sombra quase nenhuma */
+  --radius-card:    8px;
+  --radius-control: 6px;
+  --shadow-pop:     0 8px 24px -12px rgba(0, 0, 0, 0.55);  /* só overlays   */
+
+  /* espaço: múltiplos de 4 */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+}
+Nada fora desta lista. Se faltar uma cor, use a mais próxima da lista em vez de
+inventar um tom novo.
+
+-------------------------------------------------------------------------------
+3. TIPOGRAFIA (três papéis — e o papel define a família)
+-------------------------------------------------------------------------------
+- LIVRO: serifada de leitura — Source Serif 4 (400 e 600). É o que separa
+  "livro" de "ferramenta" na mesma tela. Se preferir sem serifa, troque apenas a
+  variável --font-book: todo o resto continua igual.
+- INTERFACE: grotesca neutra — Inter (400, 500, 600).
+- DADOS: monoespaçada — JetBrains Mono (400, 500). Use em TUDO que é número ou
+  identificador: página atual, total de páginas, progresso, score dos trechos,
+  contagem de trechos do acervo, id do livro. Monoespaçada existe aqui porque
+  número tem de alinhar — é parte da cara de ferramenta.
+
+Regras que valem para o escuro:
+- peso mínimo 400; nada de 300 (no fundo escuro o traço fino desaparece);
+- nunca branco puro (#FFFFFF) em texto: use --ink / --ink-book;
+- texto do livro: 19px, entrelinha 1.7, largura entre 60 e 75 caracteres,
+  alinhado à esquerda, sem hifenização;
+- interface: 15px com entrelinha 1.5; secundário 14px; rótulo 13px em caixa
+  normal (não use MAIÚSCULAS espaçadas em lugar nenhum);
+- título do livro: 30px, peso 600, --ink;
+- defina a família EXPLICITAMENTE em todo elemento, inclusive botões, campos e
+  contadores — no fim não pode existir nenhum elemento herdando a fonte padrão
+  do navegador.
+
+-------------------------------------------------------------------------------
+4. LEITURA EM FUNDO ESCURO (o ponto mais delicado)
+-------------------------------------------------------------------------------
+- A página é --surface com borda de 1px em --line: é a borda que dá a sensação
+  de folha, não o branco. Não use fundo claro para simular papel.
+- O corpo do livro usa --ink-book, não --ink: em bloco longo, o branco mais
+  suave cansa menos e continua bem acima do mínimo de contraste.
+- Mantenha a estrutura de páginas exatamente como está (mesma grade, mesma
+  posição do número, mesmos controles). Só a pele muda.
+- Número de página em monoespaçada: a atual em --ink com peso 500, o total em
+  --ink-faint. O indicador de progresso é uma linha de 2px em --line com a
+  parte percorrida em --accent — nunca uma barra colorida chamativa.
+- Texto selecionado: fundo --accent-soft e texto continua --ink (não use o azul
+  padrão do navegador). Defina também ::selection.
+
+-------------------------------------------------------------------------------
+5. COMPONENTES (apenas a pele — posição e tamanho não mudam)
+-------------------------------------------------------------------------------
+- Botão primário: fundo --accent-btn, texto --accent-ink, peso 500, raio
+  --radius-control, sem borda. Hover --accent-hover. Foco: anel de 2px em
+  --accent com 40% de opacidade, sem deslocar o layout.
+- Botão secundário / navegação: fundo transparente, borda 1px --line, texto
+  --ink; hover com --surface-3. Sem sombra.
+- Campos (input, select, textarea): fundo --surface-2, borda 1px --line, texto
+  --ink, placeholder --ink-faint. Foco: borda --accent. Sem sombra interna.
+- Card de conexões: fundo --surface, borda 1px --line, raio --radius-card,
+  sem sombra. O card não pode ser mais claro que a página de leitura de forma
+  a competir com ela.
+- Selos de classificação: fundo = tinta do tom a 14% sobre --surface, texto no
+  tom claro correspondente, 13px, peso 500, raio 999px.
+- Lista de trechos recuperados: segundo plano — texto 14px em --ink-muted,
+  score em monoespaçada --ink-faint, sem borda por item (use um divisor de 1px
+  --line entre eles), recolhida por padrão na leitura.
+- Rodapé de leitura: navegação em botão secundário, posição em monoespaçada,
+  tudo na mesma faixa, com a página atual em destaque e o total menor.
+- Scrollbar: barra fina em --line-strong sobre --bg (o navegador não pode
+  destoar do resto).
+
+-------------------------------------------------------------------------------
+6. ESTADOS
+-------------------------------------------------------------------------------
+- Carregando: esqueleto em --surface-2 com pulso lento de opacidade. Se o
+  sistema pedir menos movimento (prefers-reduced-motion), sem animação.
+- Sem conexão: texto em --ink-muted, sem drama, evidência continua visível.
+- Erro: use --danger UMA vez (no texto), com a ação em botão secundário.
+- Vazio/inicial: convite curto em --ink-muted.
+Os seis estados continuam existindo, com a mesma mecânica; só a pele muda.
+
+-------------------------------------------------------------------------------
+7. O QUE NÃO FAZER
+-------------------------------------------------------------------------------
+- Não mudar estrutura, grade, posições, tamanhos ou comportamento de nada.
+- Não adicionar nem remover elemento, funcionalidade, seção ou estado.
+- Não criar tema claro nem alternador de tema (fica para depois, se você pedir).
+- Não usar gradiente, brilho (glow), sombra grande, vidro/blur, ícone externo,
+  emoji ou imagem.
+- Não introduzir cor, família tipográfica ou token fora da seção 2.
+- Não usar !important.
+- Não mexer no conteúdo de exemplo (mock).
+
+-------------------------------------------------------------------------------
+8. COMO TRABALHAR (etapas — pare e me avise ao fim de cada uma)
+-------------------------------------------------------------------------------
+Etapa 1 — tokens e tipografia: aplicar as variáveis, carregar as três famílias,
+  definir família em todos os elementos e conferir a escala.
+Etapa 2 — leitura: página escura com borda, corpo em --ink-book, monoespaçada
+  nos números, seleção e progresso.
+Etapa 3 — componentes: botões, campos, card, selos, lista de trechos, rodapé.
+Etapa 4 — estados e detalhes: esqueleto, erro, sem conexão, foco, scrollbar.
+Etapa 5 — conferência em 1440px e em 390px.
+Ao fim de cada etapa: liste os arquivos alterados e o que devo ver na tela.
+Comente em português; identificadores em inglês.
+
+-------------------------------------------------------------------------------
+9. CRITÉRIOS DE ACEITE (verificáveis — eu vou checar)
+-------------------------------------------------------------------------------
+1. A estrutura é idêntica à da tag view-v1: nenhum elemento mudou de lugar,
+   tamanho ou comportamento (prove com git diff).
+2. Nenhum par de texto abaixo de 4,5:1 de contraste; nenhum #FFFFFF em texto.
+3. O azul aparece em apenas cinco funções: botão primário, modo ativo, foco,
+   selo de classificação e texto selecionado.
+4. Sombra só em overlay; elevação no resto é borda de 1px + superfície.
+5. Números e identificadores em monoespaçada; nenhum elemento com a fonte padrão
+   do navegador.
+6. Coluna de leitura entre 60 e 75 caracteres (me diga o número medido).
+7. Os seis estados continuam funcionando e coerentes.
+8. Conferido em 1440px e em 390px.
+===============================================================================

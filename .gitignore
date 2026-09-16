@@ -1,0 +1,21 @@
+# segredos e ambiente
+.env
+.venv/
+venv/
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# node
+node_modules/
+dist/
+
+# vercel
+.vercel/
+
+# sistema
+.DS_Store
+Thumbs.db

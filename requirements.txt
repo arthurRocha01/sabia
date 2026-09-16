@@ -1,0 +1,12 @@
+# Dependências do motor.
+# As versões já validadas na prova de conceito ficam fixadas; as novas entram
+# sem fixar e são travadas depois da primeira instalação bem-sucedida.
+
+fastapi
+uvicorn[standard]          # apenas para desenvolvimento local
+pymupdf==1.28.2
+google-genai==2.22.0       # embeddings
+openai==2.54.0             # interpretação (API compatível com a OpenAI)
+psycopg[binary,pool]       # Postgres, com a conexão por pooler
+python-dotenv
+pytest
