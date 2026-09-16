@@ -10,3 +10,4 @@ openai==2.54.0             # interpretação (API compatível com a OpenAI)
 psycopg[binary,pool]       # Postgres, com a conexão por pooler
 python-dotenv
 pytest
+ruff                       # desenvolvimento: formatação e análise estática
