@@ -90,6 +90,13 @@ def test_accepts_book_and_creates_job(cliente, banco, arquivos, pdf_com_texto):
     assert corpo["estimated_texts"] > 0
     assert corpo["quota_fits"] is True
 
+    # O token chega ao armazenamento sem o prefixo "Bearer": com ele, o
+    # armazenamento recusava o envio ("JWS Protected Header is invalid").
+    from conftest import TOKEN
+
+    _, _, token_recebido = arquivos["enviados"][0]
+    assert token_recebido == TOKEN
+
     criado = banco.dados("create_book")
     assert criado["n_chunks"] == corpo["estimated_texts"]
     assert criado["owner_id"] == LEITOR
@@ -187,6 +194,41 @@ def test_job_progress_does_nothing_when_already_done(cliente, banco):
     resposta = cliente.get(f"/api/jobs/{TAREFA}")
     assert resposta.status_code == 200
     assert not banco.chamou("advance_job")
+
+
+def test_falha_no_lote_marca_tarefa_e_livro_e_devolve_a_causa(
+    cliente, banco, arquivos, pdf_com_texto
+):
+    """Falha no lote: registra a falha e devolve a CAUSA, sem mascará-la.
+
+    A transação do pedido pode estar morta quando o erro acontece — se o
+    registro da falha dependesse dela, a causa real desapareceria.
+    """
+    from engine.api import deps
+    from engine.core.errors import QuotaExhausted
+
+    arquivos["conteudo"] = pdf_com_texto
+    banco.livro = _livro_json(status="preparing", storage_path=f"{LEITOR}/{LIVRO}.pdf")
+    banco.tarefa = {
+        "id": TAREFA, "book_id": LIVRO, "state": "queued", "next_batch": 0,
+        "total_batches": 1, "texts_embedded": 0, "error_code": None,
+    }
+
+    class EmbedderQueFalha:
+        def embed_documents(self, textos):
+            raise QuotaExhausted("a cota diária de embeddings acabou")
+
+        def embed_query(self, texto):
+            raise QuotaExhausted("a cota diária de embeddings acabou")
+
+    cliente.app.dependency_overrides[deps.embeddings] = EmbedderQueFalha
+
+    resposta = cliente.get(f"/api/jobs/{TAREFA}")
+
+    assert resposta.status_code == 429
+    assert resposta.json()["code"] == "quota_exhausted"
+    assert banco.dados("fail_job")["error_code"] == "quota_exhausted"
+    assert banco.chamou("fail_book")
 
 
 def test_job_unknown_returns_not_found(cliente, banco):

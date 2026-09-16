@@ -25,6 +25,12 @@ from engine.core.errors import Unauthorized
 ALGORITHMS = ("ES256", "ES384", "ES512", "RS256", "RS384", "RS512")
 BEARER = "bearer "
 
+# Tolerância para desvio entre o relógio de quem emitiu o token e o de quem o
+# confere. Medido na verificação ponta a ponta: o `iat` chegou 37 segundos "no
+# futuro" porque o relógio da máquina estava atrasado — e sem tolerância o motor
+# recusa um token legítimo. Desvio de relógio entre máquinas é normal.
+CLOCK_SKEW_SECONDS = 60
+
 
 @dataclass(frozen=True)
 class Reader:
@@ -67,6 +73,7 @@ class TokenVerifier:
                 algorithms=list(ALGORITHMS),
                 audience=self.audience,
                 issuer=self.issuer,
+                leeway=CLOCK_SKEW_SECONDS,
                 options={"require": ["exp", "sub"]},
             )
         except jwt.PyJWTError as erro:

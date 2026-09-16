@@ -19,8 +19,9 @@ import psycopg
 from fastapi import Depends, Header
 
 from engine.core.config import Settings, load_settings
+from engine.core.errors import Unauthorized
 from engine.infra import db
-from engine.infra.auth import Reader, TokenVerifier
+from engine.infra.auth import BEARER, Reader, TokenVerifier
 from engine.infra.providers import DeepSeekInterpretation, GeminiEmbeddings
 
 
@@ -74,6 +75,21 @@ def leitor_autenticado(
 
 
 ReaderDep = Annotated[Reader, Depends(leitor_autenticado)]
+
+
+def token_do_leitor(authorization: Annotated[str | None, Header()] = None) -> str:
+    """O token cru, sem o prefixo do cabeçalho.
+
+    Quem fala com o armazenamento precisa do token **sem** "Bearer": a função
+    de envio monta o cabeçalho sozinha, e passar o valor inteiro fazia o
+    armazenamento recusar com "JWS Protected Header is invalid".
+    """
+    if not authorization or not authorization.lower().startswith(BEARER):
+        raise Unauthorized("pedido sem sessão", detail="entre para continuar")
+    return authorization[len(BEARER) :].strip()
+
+
+TokenDep = Annotated[str, Depends(token_do_leitor)]
 
 
 def conexao_do_leitor(leitor: ReaderDep, settings: ConfigDep) -> Iterator[psycopg.Connection]:

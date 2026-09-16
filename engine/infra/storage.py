@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from engine.core.errors import FileUnavailable
+from engine.core.errors import FileUnavailable, IngestionFailed
 
 BUCKET = "books"
 
@@ -45,9 +45,12 @@ def upload(base_url: str, path: str, data: bytes, *, token: str) -> None:
         with _request("POST", _url(base_url, path), token, data=data) as resposta:
             resposta.read()
     except urllib.error.HTTPError as erro:
-        raise FileUnavailable(
+        # O corpo da resposta do armazenamento diz o motivo exato; sem ele, o
+        # erro vira um número e a investigação começa do zero.
+        motivo = erro.read()[:200].decode("utf-8", "replace") if erro.fp else ""
+        raise IngestionFailed(
             "não foi possível guardar o arquivo do livro",
-            detail=f"o armazenamento respondeu {erro.code}",
+            detail=f"o armazenamento respondeu {erro.code}: {motivo}",
         ) from erro
 
 
@@ -96,7 +99,8 @@ def remove(base_url: str, path: str, *, token: str) -> None:
             resposta.read()
     except urllib.error.HTTPError as erro:
         if erro.code != 404:  # já não existir não é falha de quem remove
-            raise FileUnavailable(
+            motivo = erro.read()[:200].decode("utf-8", "replace") if erro.fp else ""
+            raise IngestionFailed(
                 "não foi possível apagar o arquivo do livro",
-                detail=f"o armazenamento respondeu {erro.code}",
+                detail=f"o armazenamento respondeu {erro.code}: {motivo}",
             ) from erro

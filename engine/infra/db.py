@@ -29,8 +29,16 @@ HALFVEC = "%s::halfvec"
 
 
 def connect(url: str) -> psycopg.Connection:
-    """Conexão ao banco pela URL do pooler em modo transação."""
-    return psycopg.connect(url, connect_timeout=20)
+    """Conexão ao banco pela URL do pooler em modo transação.
+
+    `prepare_threshold=None` desliga a preparação automática de instruções no
+    servidor, e isso **não é detalhe**: no modo transação o pooler entrega a
+    próxima execução a outra conexão do pool, e a instrução preparada numa
+    delas não existe na outra. O erro medido foi
+    `DuplicatePreparedStatement: prepared statement "_pg3_0" already exists`,
+    e só aparecia depois de algumas execuções da mesma instrução.
+    """
+    return psycopg.connect(url, connect_timeout=20, prepare_threshold=None)
 
 
 def open_session(url: str, claims: dict[str, Any]) -> psycopg.Connection:
@@ -42,7 +50,7 @@ def open_session(url: str, claims: dict[str, Any]) -> psycopg.Connection:
     ele morre com a transação e não vaza para o próximo pedido que usar a mesma
     conexão do pooler.
     """
-    conexao = psycopg.connect(url, connect_timeout=20)
+    conexao = connect(url)
     with conexao.cursor() as cursor:
         cursor.execute("set local role authenticated")
         cursor.execute(
@@ -382,8 +390,10 @@ def search_chunks(
     O escopo é escolha explícita: `others` exclui o livro aberto, `same` fica só
     nele. Um dos dois, nunca os dois.
     """
+    # A ordem dos parâmetros segue a ordem dos marcadores: o vetor aparece três
+    # vezes na consulta (seleção, filtro de limiar e ordenação).
     filtro = ""
-    parametros: list = [embedding]
+    parametros: list = []
     if scope == "same":
         filtro = "and c.book_id = %s"
         parametros.append(book_id)

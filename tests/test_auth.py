@@ -26,10 +26,19 @@ def _par_de_chaves():
     return privada, {"keys": [publica]}
 
 
-def _token(privada, *, aud="authenticated", exp_delta=3600, sub="leitor-1", kid=KID, **extras):
+def _token(
+    privada, *, aud="authenticated", exp_delta=3600, iat_delta=0, sub="leitor-1", kid=KID, **extras
+):
     import time
 
-    claims = {"sub": sub, "aud": aud, "exp": int(time.time()) + exp_delta, **extras}
+    agora = int(time.time())
+    claims = {
+        "sub": sub,
+        "aud": aud,
+        "iat": agora + iat_delta,
+        "exp": agora + exp_delta,
+        **extras,
+    }
     return pyjwt.encode(claims, privada, algorithm="ES256", headers={"kid": kid})
 
 
@@ -67,7 +76,20 @@ def test_rejects_expired_token():
     verificador, _ = _verificador(chaves)
 
     with pytest.raises(Unauthorized):
-        verificador.verify(f"Bearer {_token(privada, exp_delta=-10)}")
+        verificador.verify(f"Bearer {_token(privada, exp_delta=-600)}")
+
+
+def test_accepts_a_few_seconds_of_clock_skew():
+    """Desvio de relógio entre quem emite e quem confere é normal.
+
+    Medido na verificação real: o `iat` chegou 37 segundos no futuro, porque o
+    relógio da máquina estava atrasado — e o token era legítimo.
+    """
+    privada, chaves = _par_de_chaves()
+    verificador, _ = _verificador(chaves)
+    token = _token(privada, iat_delta=-30, exp_delta=-5)
+
+    assert verificador.verify(f"Bearer {token}").id == "leitor-1"
 
 
 def test_rejects_token_signed_by_another_key():

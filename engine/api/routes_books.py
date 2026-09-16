@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, File, Form, Header, Response, UploadFile, status
 
 from engine.api import schemas
-from engine.api.deps import AutorizacaoDep, ConexaoDep, ConfigDep, ReaderDep
+from engine.api.deps import ConexaoDep, ConfigDep, ReaderDep, TokenDep
 from engine.api.stores import StorageFiles
 from engine.core.errors import BookNotFound
 from engine.domain.books import file_hash, quota_from, validate_meta
@@ -46,7 +46,7 @@ async def enviar(
     title: Annotated[str, Form()],
     author: Annotated[str, Form()],
     line: Annotated[str | None, Form()] = None,
-    authorization: AutorizacaoDep = None,
+    token: TokenDep = "",
 ) -> schemas.IngestionAccepted:
     """Recebe o arquivo e devolve a tarefa de ingestão.
 
@@ -63,7 +63,7 @@ async def enviar(
         preparado = prepare(read_book(dados))
         lotes = plan_batches(preparado.chunks)
         resumo = file_hash(dados)
-        arquivos = StorageFiles(settings.supabase_url, authorization or "")
+        arquivos = StorageFiles(settings.supabase_url, token)
 
         anterior = db.find_book(cursor, leitor.id, resumo)
         if anterior:
@@ -130,7 +130,7 @@ def remover(
     leitor: ReaderDep,
     settings: ConfigDep,
     conexao: ConexaoDep,
-    authorization: AutorizacaoDep = None,
+    token: TokenDep = "",
 ) -> Response:
     """Remove o livro, os trechos (em cascata) e o arquivo."""
     with conexao.cursor() as cursor:
@@ -138,9 +138,7 @@ def remover(
         if not livro:
             raise BookNotFound("livro não encontrado no seu acervo")
         db.delete_book(cursor, str(book_id))
-        StorageFiles(settings.supabase_url, authorization or "").remove(
-            livro["storage_path"]
-        )
+        StorageFiles(settings.supabase_url, token).remove(livro["storage_path"])
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -150,7 +148,7 @@ def arquivo(
     leitor: ReaderDep,
     settings: ConfigDep,
     conexao: ConexaoDep,
-    authorization: AutorizacaoDep = None,
+    token: TokenDep = "",
     range: Annotated[str | None, Header()] = None,
 ) -> Response:
     """Serve o PDF do livro, repassando o pedido de faixa do leitor de PDF."""
@@ -162,7 +160,7 @@ def arquivo(
     codigo, corpo, cabecalhos = storage.fetch(
         settings.supabase_url,
         livro["storage_path"],
-        token=authorization or "",
+        token=token,
         range_header=range,
     )
     return Response(content=corpo, status_code=codigo, headers=cabecalhos)

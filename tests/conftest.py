@@ -28,6 +28,7 @@ ENV = {
 LEITOR = "11111111-1111-1111-1111-111111111111"
 LIVRO = "22222222-2222-2222-2222-222222222222"
 TAREFA = "33333333-3333-3333-3333-333333333333"
+TOKEN = "token-de-teste-sem-prefixo"
 
 
 class CursorFalso:
@@ -51,8 +52,18 @@ class CursorFalso:
 class ConexaoFalsa:
     """Conexão de mentira: as funções do banco são substituídas nos testes."""
 
+    def __init__(self) -> None:
+        self.desfez = 0
+        self.confirmou = 0
+
     def cursor(self) -> CursorFalso:
         return CursorFalso()
+
+    def rollback(self) -> None:
+        self.desfez += 1
+
+    def commit(self) -> None:
+        self.confirmou += 1
 
 
 class BancoFalso:
@@ -240,6 +251,7 @@ def cliente(settings, banco, arquivos, interpretador) -> TestClient:
         id=LEITOR, claims={"sub": LEITOR}
     )
     app.dependency_overrides[deps.conexao_do_leitor] = ConexaoFalsa
+    app.dependency_overrides[deps.token_do_leitor] = lambda: TOKEN
     app.dependency_overrides[deps.embeddings] = EmbedderFalso
     app.dependency_overrides[deps.interpretador] = lambda: interpretador
     return TestClient(app)
