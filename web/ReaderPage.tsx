@@ -10,12 +10,14 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 import { connect, fetchBookFile, formatError, interpret, listBooks } from './api'
 import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from './types'
+import ToolHeader from './ToolHeader'
+import LoadingIndicator from './LoadingIndicator'
 
 // O parsing roda fora da linha principal, num worker; é ele que não deixa a
 // rolagem travar em página grande.
@@ -26,8 +28,21 @@ const ZOOM_MINIMO = 0.6
 const ZOOM_MAXIMO = 3
 const PASSO_ZOOM = 0.2
 
-export default function ReaderPage() {
-  const { bookId } = useParams()
+type ReaderPageProps = {
+  embedded?: boolean
+  bookIdOverride?: string
+  externalSelectedText?: string
+  onSelectionChange?: (text: string) => void
+}
+
+export default function ReaderPage({
+  embedded = false,
+  bookIdOverride,
+  externalSelectedText,
+  onSelectionChange,
+}: ReaderPageProps) {
+  const params = useParams()
+  const bookId = bookIdOverride ?? params.bookId
   const navegar = useNavigate()
   const local = useLocation()
 
@@ -38,17 +53,34 @@ export default function ReaderPage() {
   const [alvoDaPagina, setAlvoDaPagina] = useState('1')
   const [zoom, setZoom] = useState(ZOOM_INICIAL)
   const [status, setStatus] = useState('carregando o arquivo…')
-  const [selectedText, setSelectedText] = useState('')
+  const [selectedText, setSelectedText] = useState(externalSelectedText ?? '')
   const [hits, setHits] = useState<ConnectResponse['hits']>([])
   const [card, setCard] = useState<InterpretationResponse | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [paginaRenderizada, setPaginaRenderizada] = useState(false)
+  const [connectionsOpen, setConnectionsOpen] = useState(true)
+  const [bookWidth, setBookWidth] = useState(0)
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const layerRef = useRef<HTMLDivElement | null>(null)
+  const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([])
+  const layerRefs = useRef<Array<HTMLDivElement | null>>([])
+  const pageRefs = useRef<Array<HTMLDivElement | null>>([])
+  const bookStageRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const desenhoRef = useRef(0)
   const pedidoRef = useRef(0)
+
+  useEffect(() => {
+    if (!embedded || !bookStageRef.current) return
+
+    const stage = bookStageRef.current
+    const atualizarLargura = () => setBookWidth(stage.clientWidth)
+    atualizarLargura()
+
+    const observer = new ResizeObserver(atualizarLargura)
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [embedded])
 
   // Acervo, bytes do arquivo e documento. Refaz tudo quando o livro muda.
   useEffect(() => {
@@ -57,7 +89,7 @@ export default function ReaderPage() {
     setError('')
     setHits([])
     setCard(null)
-    setSelectedText('')
+    setSelectedText(externalSelectedText ?? '')
 
     void (async () => {
       try {
@@ -102,54 +134,92 @@ export default function ReaderPage() {
   // Desenho da página atual: canvas na resolução da tela, camada de texto por cima.
   useEffect(() => {
     const documento = docRef.current
-    const canvas = canvasRef.current
-    const layer = layerRef.current
-    if (!documento || !canvas || !layer || pageCount === 0) return
+    if (!documento || pageCount === 0) return
 
     const marca = ++desenhoRef.current
+    setPaginaRenderizada(false)
+    canvasRefs.current.forEach((canvas, index) => {
+      const layer = layerRefs.current[index]
+      const pageElement = pageRefs.current[index]
+      if (layer) layer.replaceChildren()
+      if (canvas) {
+        canvas.width = 1
+        canvas.height = 1
+        canvas.style.width = '1px'
+        canvas.style.height = '1px'
+      }
+      if (pageElement) {
+        pageElement.style.width = '1px'
+        pageElement.style.height = '1px'
+      }
+    })
 
     void (async () => {
-      const pagina = await documento.getPage(page)
-      if (marca !== desenhoRef.current) return
+      const paginas = [page, page + 1].filter((numero) => numero <= pageCount)
+      await Promise.all(paginas.map(async (numero, index) => {
+        const canvas = canvasRefs.current[index]
+        const layer = layerRefs.current[index]
+        const pageElement = pageRefs.current[index]
+        if (!canvas || !layer || !pageElement) return
 
-      const densidade = window.devicePixelRatio || 1
-      const vista = pagina.getViewport({ scale: zoom })
-      const nitida = pagina.getViewport({ scale: zoom * densidade })
+        const pagina = await documento.getPage(numero)
+        if (marca !== desenhoRef.current) return
 
-      canvas.width = Math.floor(nitida.width)
-      canvas.height = Math.floor(nitida.height)
-      canvas.style.width = `${vista.width}px`
-      canvas.style.height = `${vista.height}px`
+        const densidade = window.devicePixelRatio || 1
+        const larguraBase = pagina.getViewport({ scale: 1 }).width
+        const umaPagina = bookWidth > 0 && (
+          window.matchMedia('(max-width: 800px)').matches || page >= pageCount
+        )
+        const colunas = umaPagina ? 1 : 2
+        const escalaDeEncaixe = bookWidth > 0
+          ? (bookWidth - Math.max(0, colunas - 1)) / (larguraBase * colunas)
+          : zoom
+        const escala = embedded ? Math.min(zoom, escalaDeEncaixe) : zoom
+        const vista = pagina.getViewport({ scale: escala })
+        const nitida = pagina.getViewport({ scale: escala * densidade })
 
-      // No pdf.js 5 o desenho recebe o próprio canvas (era `canvasContext` na 4).
-      await pagina.render({ canvas, viewport: nitida }).promise
-      if (marca !== desenhoRef.current) return
+        canvas.width = Math.floor(nitida.width)
+        canvas.height = Math.floor(nitida.height)
+        canvas.style.width = `${vista.width}px`
+        canvas.style.height = `${vista.height}px`
+        pageElement.style.width = `${vista.width}px`
+        pageElement.style.height = `${vista.height}px`
 
-      // A camada de texto é invisível e posicionada palavra a palavra: é ela
-      // que o navegador enxerga como texto para selecionar.
-      layer.innerHTML = ''
-      layer.style.setProperty('--total-scale-factor', String(zoom))
-      const conteudo = await pagina.getTextContent()
-      if (marca !== desenhoRef.current) return
+        const contexto = canvas.getContext('2d')
+        if (!contexto) throw new Error('Não foi possível preparar o canvas do PDF.')
+        contexto.clearRect(0, 0, canvas.width, canvas.height)
+        await pagina.render({ canvas, canvasContext: contexto, viewport: nitida }).promise
+        if (marca !== desenhoRef.current) return
 
-      const camada = new pdfjs.TextLayer({
-        textContentSource: conteudo,
-        container: layer,
-        viewport: vista,
-      })
-      await camada.render()
-      pdfjs.setLayerDimensions(layer, vista)
+        layer.replaceChildren()
+        layer.style.setProperty('--total-scale-factor', String(escala))
+        const conteudo = await pagina.getTextContent()
+        if (marca !== desenhoRef.current) return
+
+        const camada = new pdfjs.TextLayer({
+          textContentSource: conteudo,
+          container: layer,
+          viewport: vista,
+        })
+        await camada.render()
+        pdfjs.setLayerDimensions(layer, vista)
+      }))
+
+      if (marca === desenhoRef.current) setPaginaRenderizada(true)
     })().catch((caught) => {
       if (marca === desenhoRef.current) setError(formatError(caught))
     })
-  }, [page, zoom, pageCount])
+  }, [embedded, page, zoom, pageCount, bookWidth])
 
   /** Ao soltar o mouse, o que ficou selecionado vira o trecho a conectar. */
   const capturarSelecao = useCallback(() => {
     const bruto = window.getSelection()?.toString() ?? ''
     // Os trechos vêm fatiados por linha: junta os espaços e as quebras.
     const limpo = bruto.replace(/\s+/g, ' ').trim()
-    if (limpo) setSelectedText(limpo)
+    if (limpo) {
+      setSelectedText(limpo)
+      onSelectionChange?.(limpo)
+    }
   }, [])
 
   const irPara = (numero: number) => {
@@ -208,48 +278,44 @@ export default function ReaderPage() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="brand-block">
-          <p className="brand-name">Sabiá</p>
-          <p className="brand-tagline">Leitura</p>
-        </div>
-        <nav className="main-nav" aria-label="Menu de leitura">
-          <Link to="/perfil" className="nav-link">Perfil</Link>
-          <Link to="/consultar" className="nav-link">Consultar</Link>
-        </nav>
-      </header>
+      {!embedded ? <ToolHeader /> : null}
 
-      <main className="reader-layout workspace-grid">
-        <section className="panel viewer-panel">
-          <div className="panel-title-row">
+      <main className={embedded ? 'workspace-layout' : 'reader-layout workspace-grid'}>
+        <section className={embedded ? 'book-workspace' : 'panel viewer-panel'}>
+          <div className={embedded ? 'book-toolbar' : 'panel-title-row book-toolbar-header'}>
             <div>
-              <p className="eyebrow">Livro</p>
-              <h1>{activeBook?.title ?? 'Livro'}</h1>
-              {activeBook ? <p className="muted-copy">{activeBook.author}</p> : null}
+              {embedded ? <p className="eyebrow">Leitura</p> : null}
+              {embedded ? <h2>{activeBook?.title ?? 'Livro'}</h2> : <h1>{activeBook?.title ?? 'Livro'}</h1>}
+              {activeBook ? <p className="book-author">{activeBook.author}</p> : null}
             </div>
-            <select
-              value={bookId ?? ''}
-              onChange={(evento) => navegar(`/ler/${evento.target.value}`)}
-              aria-label="Trocar de livro"
-            >
-              {books.map((book) => (
-                <option key={book.id} value={book.id}>{book.title}</option>
-              ))}
-            </select>
+            <label className="book-picker">
+              <span>Livro</span>
+              <select
+                value={bookId ?? ''}
+                onChange={(evento) => navegar(`/consultar?book=${evento.target.value}`)}
+                aria-label="Trocar de livro"
+              >
+                {books.map((book) => (
+                  <option key={book.id} value={book.id}>{book.title}</option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {error ? <p className="inline-error">{error}</p> : null}
-          {status ? <p className="muted-copy">{status}</p> : null}
+          {status ? <LoadingIndicator label={status} /> : null}
 
           <div className="pdf-frame">
-            <div className="pdf-toolbar">
+            {!embedded ? <div className="pdf-toolbar minimal-pdf-toolbar">
               <button
                 type="button"
                 className="ghost-button"
                 onClick={() => irPara(page - 1)}
                 disabled={page <= 1}
+                aria-label="Página anterior"
+                title="Página anterior"
               >
-                Anterior
+                {embedded ? '←' : 'Anterior'}
               </button>
               <span className="pdf-position">
                 página <strong>{page}</strong> de {pageCount || '—'}
@@ -259,8 +325,10 @@ export default function ReaderPage() {
                 className="ghost-button"
                 onClick={() => irPara(page + 1)}
                 disabled={pageCount === 0 || page >= pageCount}
+                aria-label="Próxima página"
+                title="Próxima página"
               >
-                Próxima
+                {embedded ? '→' : 'Próxima'}
               </button>
 
               <label className="field-group pdf-goto">
@@ -282,35 +350,78 @@ export default function ReaderPage() {
                 <span className="muted-copy">{Math.round(zoom * 100)}%</span>
                 <button type="button" className="ghost-button" onClick={() => mudarZoom(PASSO_ZOOM)}>+</button>
               </span>
-            </div>
+            </div> : null}
 
-            <div className="pdf-stage">
-              <div className="pdf-page">
-                <canvas ref={canvasRef} />
-                <div ref={layerRef} className="textLayer" onMouseUp={capturarSelecao} />
-              </div>
+            <div
+              ref={bookStageRef}
+              className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}`}
+            >
+              {[0, 1].map((index) => (
+                <div
+                  key={`${page}-${zoom}-${index}`}
+                  ref={(element) => { pageRefs.current[index] = element }}
+                  className={`pdf-page book-page-${index === 0 ? 'left' : 'right'}`}
+                  hidden={index === 1 && page >= pageCount}
+                >
+                  <span className="book-page-number">{page + index}</span>
+                  <canvas ref={(element) => { canvasRefs.current[index] = element }} />
+                  <div
+                    ref={(element) => { layerRefs.current[index] = element }}
+                    className="textLayer"
+                    onMouseUp={capturarSelecao}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="selection-box">
+          {embedded ? (
+            <footer className="book-footer">
+              <button type="button" className="page-button" onClick={() => irPara(page - 1)} disabled={page <= 1}>
+                ← Anterior
+              </button>
+              <div className="book-progress">
+                <span>Página {page}</span>
+                <div className="progress-track">
+                  <span style={{ width: `${pageCount ? (page / pageCount) * 100 : 0}%` }} />
+                </div>
+                <span>{pageCount || '—'}</span>
+              </div>
+              <button type="button" className="page-button" onClick={() => irPara(page + 1)} disabled={pageCount === 0 || page >= pageCount}>
+                Próxima →
+              </button>
+            </footer>
+          ) : null}
+
+          {!embedded ? <div className="selection-box">
             <label className="field-group">
               <span>Trecho selecionado</span>
               <textarea
                 rows={5}
                 value={selectedText}
-                onChange={(evento) => setSelectedText(evento.target.value)}
+                onChange={(evento) => {
+                  setSelectedText(evento.target.value)
+                  onSelectionChange?.(evento.target.value)
+                }}
                 placeholder="Selecione um trecho no livro ou cole aqui."
               />
             </label>
             <button type="button" className="primary-button" onClick={buscarConexoes} disabled={busy}>
               {busy ? 'Buscando conexões…' : 'Buscar conexões'}
             </button>
-          </div>
+          </div> : null}
         </section>
 
-        <aside className="panel sidebar-panel">
-          <p className="eyebrow">Conexões</p>
-          <h2>Evidência</h2>
+        {!embedded && connectionsOpen ? <aside className="panel sidebar-panel connections-panel-wrapper">
+          <div className="connections-title">
+            <div>
+              <p className="eyebrow">Conexões</p>
+              <h2>Evidência</h2>
+            </div>
+            <button type="button" className="panel-control" onClick={() => setConnectionsOpen(false)} aria-label="Recolher conexões">×</button>
+          </div>
+
+          {busy ? <LoadingIndicator label="Buscando conexões" compact /> : null}
 
           <div className="result-stack">
             {hits.length === 0 ? (
@@ -357,7 +468,12 @@ export default function ReaderPage() {
               <p className="muted-copy">O card de interpretação aparecerá aqui.</p>
             )}
           </div>
-        </aside>
+        </aside> : null}
+        {!embedded && !connectionsOpen ? (
+          <button type="button" className="open-panel-button" onClick={() => setConnectionsOpen(true)}>
+            Abrir conexões
+          </button>
+        ) : null}
       </main>
     </>
   )

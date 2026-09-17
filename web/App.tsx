@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, NavLink, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 import type { Book, ConnectRequest, ConnectResponse, ErrorResponse, InterpretationResponse, JobProgress, Profile } from './types'
 import { connect, deleteBook, formatError, getJob, getProfile, interpret, listBooks, updateBook, updateProfile, uploadBook } from './api'
 import ReaderPage from './ReaderPage'
+import ToolHeader from './ToolHeader'
+import LoadingIndicator from './LoadingIndicator'
 
 const storageKey = 'sabia_session'
 const tokenKey = 'sabia_token'
@@ -16,6 +18,8 @@ type ProcessState = {
   jobId: string
   bookId: string
   status: string
+  processed: number
+  total: number | null
 }
 
 function App() {
@@ -63,14 +67,15 @@ function App() {
   }, [])
 
   return (
-    <div className="app-shell">
-      <Routes>
-        <Route path="/entrar" element={hasSession ? <Navigate to="/perfil" replace /> : <LoginPage onSignedIn={() => setHasSession(true)} />} />
-        <Route path="/perfil" element={hasSession ? <ProfilePage onSignOut={signOut} /> : <Navigate to="/entrar" replace />} />
-        <Route path="/ler/:bookId" element={hasSession ? <ReaderPage /> : <Navigate to="/entrar" replace />} />
-        <Route path="/consultar" element={hasSession ? <ConsultPage /> : <Navigate to="/entrar" replace />} />
-        <Route path="*" element={<Navigate to={hasSession ? '/perfil' : '/entrar'} replace />} />
-      </Routes>
+    <div className="workspace-page">
+      <div className="workspace-shell">
+        <Routes>
+          <Route path="/entrar" element={hasSession ? <Navigate to="/perfil" replace /> : <LoginPage onSignedIn={() => setHasSession(true)} />} />
+          <Route path="/perfil" element={hasSession ? <ProfilePage onSignOut={signOut} /> : <Navigate to="/entrar" replace />} />
+          <Route path="/consultar" element={hasSession ? <ConsultPage /> : <Navigate to="/entrar" replace />} />
+          <Route path="*" element={<Navigate to={hasSession ? '/perfil' : '/entrar'} replace />} />
+        </Routes>
+      </div>
     </div>
   )
 }
@@ -143,6 +148,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [loadingBooks, setLoadingBooks] = useState(true)
   const [jobState, setJobState] = useState<Record<string, ProcessState>>({})
 
   const loadData = async () => {
@@ -153,6 +159,8 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
       setError('')
     } catch (caught) {
       setError(formatError(caught))
+    } finally {
+      setLoadingBooks(false)
     }
   }
 
@@ -175,8 +183,17 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
       const result = await uploadBook(formData)
       setJobState((current) => ({
         ...current,
-        [result.job_id]: { jobId: result.job_id, bookId: result.book_id, status: 'queued' },
+        [result.job_id]: { jobId: result.job_id, bookId: result.book_id, status: 'queued', processed: 0, total: null },
       }))
+      if (!result.quota_fits) {
+        const continuar = window.confirm(
+          `A cota do dia não comporta a estimativa deste livro: ${result.estimated_texts} trechos estimados e ${result.quota_remaining} restantes. Deseja continuar?`,
+        )
+        if (!continuar) {
+          setBusy(false)
+          return
+        }
+      }
       await pollJob(result.job_id)
       await loadData()
       form.reset()
@@ -196,6 +213,8 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
         jobId,
         bookId: String((progress as JobProgress).book_id ?? ''),
         status: String((progress as JobProgress).state ?? 'queued'),
+        processed: Number((progress as JobProgress).processed ?? 0),
+        total: (progress as JobProgress).total ?? null,
       },
     }))
 
@@ -218,17 +237,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
 
   return (
     <>
-      <header className="topbar">
-        <div className="brand-block">
-          <p className="brand-name">Sabiá</p>
-          <p className="brand-tagline">Conexões entre livros</p>
-        </div>
-        <nav className="main-nav" aria-label="Menu principal">
-          <NavLink to="/perfil" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Perfil</NavLink>
-          <NavLink to="/consultar" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>Consultar</NavLink>
-        </nav>
-        <button type="button" className="ghost-button" onClick={onSignOut}>Sair</button>
-      </header>
+      <ToolHeader mode="profile" />
 
       <main className="workspace-grid">
         <section className="panel panel-large">
@@ -265,13 +274,17 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
           </form>
 
           <div className="book-list">
-            {books.length === 0 ? (
+            {loadingBooks ? (
+              <LoadingIndicator label="Carregando livros" />
+            ) : books.length === 0 ? (
               <div className="empty-card">
                 <p>Seu acervo está vazio. Envie um PDF para começar.</p>
               </div>
             ) : (
-              books.map((book) => (
-                <article className="book-card" key={book.id}>
+              books.map((book) => {
+                const job = Object.values(jobState).find((item) => item.bookId === book.id)
+
+                return <article className="book-card" key={book.id}>
                   <div>
                     <p className="mini-label">{book.author}</p>
                     <h3>{book.title}</h3>
@@ -282,9 +295,15 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                     <span>{book.n_chunks ?? 0} trechos</span>
                     <span>{book.page_count ?? 0} páginas</span>
                   </div>
+                  {job ? (
+                    <div className="job-progress">
+                      <span>{job.status}</span>
+                      <strong>{job.processed}/{job.total ?? '—'} trechos</strong>
+                    </div>
+                  ) : null}
 
                   <div className="book-actions">
-                    <button type="button" className="secondary-button" onClick={() => navigate(`/ler/${book.id}`)}>Abrir</button>
+                    <button type="button" className="secondary-button" onClick={() => navigate(`/consultar?book=${book.id}`)}>Abrir na consulta</button>
                     <button
                       type="button"
                       className="secondary-button warn"
@@ -316,7 +335,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                     <button type="submit" className="ghost-button">Salvar</button>
                   </form>
                 </article>
-              ))
+              })
             )}
           </div>
         </section>
@@ -326,6 +345,22 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
           <h2>Consumo do dia</h2>
           {profile ? (
             <>
+              <form className="line-form" onSubmit={async (event) => {
+                event.preventDefault()
+                const form = event.currentTarget
+                const currentLine = (form.elements.namedItem('current_line') as HTMLInputElement).value
+                try {
+                  setProfile(await updateProfile(currentLine))
+                } catch (caught) {
+                  setError(formatError(caught))
+                }
+              }}>
+                <label className="field-group">
+                  <span>Linha corrente</span>
+                  <input name="current_line" defaultValue={profile.current_line ?? ''} placeholder="Sua linha de aprendizado" />
+                </label>
+                <button type="submit" className="secondary-button">Salvar linha</button>
+              </form>
               <div className="metric-row">
                 <span>Textos hoje</span>
                 <strong>{profile.texts_today}</strong>
@@ -341,12 +376,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
 
           <div className="divider" />
 
-          <button type="button" className="ghost-button" onClick={async () => {
-            await updateProfile(profile?.current_line ?? '')
-            onSignOut()
-          }}>
-            Sair da conta
-          </button>
+          <button type="button" className="ghost-button" onClick={onSignOut}>Sair da conta</button>
         </aside>
       </main>
     </>
@@ -354,6 +384,9 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
 }
 
 function ConsultPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [books, setBooks] = useState<Book[]>([])
+  const [bookId, setBookId] = useState(() => searchParams.get('book') ?? '')
   const [text, setText] = useState('')
   const [scope, setScope] = useState<'others' | 'same'>('others')
   const [k, setK] = useState(3)
@@ -361,6 +394,28 @@ function ConsultPage() {
   const [error, setError] = useState('')
   const [hits, setHits] = useState<ConnectResponse['hits']>([])
   const [card, setCard] = useState<InterpretationResponse | null>(null)
+  const requestRef = useRef('')
+  const [loadingBooks, setLoadingBooks] = useState(true)
+  const [loadingConnections, setLoadingConnections] = useState(false)
+
+  useEffect(() => {
+    setLoadingBooks(true)
+    void listBooks().then((items) => {
+      setBooks(items)
+      if (!bookId && items[0]) {
+        setBookId(items[0].id)
+        setSearchParams({ book: items[0].id }, { replace: true })
+      }
+    }).catch((caught) => setError(formatError(caught)))
+      .finally(() => setLoadingBooks(false))
+  }, [bookId, setSearchParams])
+
+  const handleBookSelection = (value: string) => {
+    setBookId(value)
+    setSearchParams(value ? { book: value } : {}, { replace: true })
+    setHits([])
+    setCard(null)
+  }
 
   const handleSubmit = async () => {
     const query = text.trim()
@@ -369,101 +424,117 @@ function ConsultPage() {
       return
     }
 
-    const payload: ConnectRequest = { text: query, scope, k, min_score: minScore }
+    if (scope === 'same' && !bookId) {
+      setError('Escolha um livro para consultar apenas dentro dele.')
+      return
+    }
+
+    const payload: ConnectRequest = {
+      text: query,
+      scope,
+      book_id: bookId || undefined,
+      k,
+      min_score: minScore,
+    }
+    const requestKey = `${query}|${scope}|${bookId}|${k}|${minScore}`
+    requestRef.current = requestKey
+    setLoadingConnections(true)
 
     try {
       const [connectResponse, interpretResponse] = await Promise.all([connect(payload), interpret(payload)])
+      if (requestRef.current !== requestKey) return
       setHits(connectResponse.hits)
       setCard(interpretResponse)
       setError('')
     } catch (caught) {
-      setError(formatError(caught))
+      if (requestRef.current === requestKey) setError(formatError(caught))
+    } finally {
+      if (requestRef.current === requestKey) setLoadingConnections(false)
     }
   }
 
   return (
     <>
-      <header className="topbar">
-        <div className="brand-block">
-          <p className="brand-name">Sabiá</p>
-          <p className="brand-tagline">Consulta</p>
-        </div>
-        <nav className="main-nav" aria-label="Navegação da consulta">
-          <Link to="/perfil" className="nav-link">Perfil</Link>
-          <Link to="/consultar" className="nav-link active">Consultar</Link>
-        </nav>
-      </header>
+      <ToolHeader />
 
       <main className="consult-layout">
-        <section className="panel panel-large">
-          <div className="panel-title-row">
+        <aside className="connections-rail consult-rail" aria-label="Busca e conexões">
+          <div className="rail-header">
             <div>
-              <p className="eyebrow">Modo II</p>
-              <h1>Consultar</h1>
+              <p className="eyebrow">Ferramenta de consulta</p>
+              <h1>Conexões</h1>
             </div>
+            <span className="rail-dot" aria-hidden="true" />
           </div>
 
-          <div className="query-box">
-            <label className="field-group">
-              <span>Texto para consultar</span>
-              <textarea rows={8} value={text} onChange={(event) => setText(event.target.value)} placeholder="Cole um trecho ou uma ideia para consultar no acervo." />
-            </label>
+          <div className="rail-content">
+            <section className="rail-view">
+              <p className="rail-intro">Encontre o que outros autores dizem sobre uma ideia do livro.</p>
 
-            <div className="query-controls">
-              <label className="field-group">
+              <label className="rail-field">
+                <span>Trecho para buscar</span>
+                <textarea rows={5} value={text} onChange={(event) => setText(event.target.value)} placeholder="Cole aqui um trecho ou selecione uma passagem no livro" />
+              </label>
+
+              <div className="rail-row">
+                <label className="rail-field rail-field-grow">
+                  <span>Livro de origem</span>
+                  <select value={bookId} disabled={loadingBooks} onChange={(event) => handleBookSelection(event.target.value)}>
+                    {books.map((book) => <option key={book.id} value={book.id}>{book.title}</option>)}
+                  </select>
+                </label>
+                <label className="rail-field rail-k-field">
+                  <span>Nº conexões</span>
+                  <input type="number" min={1} max={10} value={k} onChange={(event) => setK(Math.min(10, Math.max(1, Number(event.target.value) || 1)))} />
+                </label>
+              </div>
+
+              <button type="button" className="primary-button rail-search-button" onClick={handleSubmit} disabled={loadingConnections || loadingBooks}>
+                {loadingConnections ? 'Buscando conexões…' : 'Buscar conexões'}
+              </button>
+              <p className="rail-hint">Ou selecione um trecho diretamente no livro.</p>
+
+              <label className="rail-field scope-field">
                 <span>Escopo</span>
                 <select value={scope} onChange={(event) => setScope(event.target.value as 'others' | 'same')}>
                   <option value="others">Outros livros</option>
-                  <option value="same">Só o livro aberto</option>
+                  <option value="same">Só este livro</option>
                 </select>
               </label>
 
-              <label className="field-group">
-                <span>Quantidade</span>
-                <input type="number" min={1} max={10} value={k} onChange={(event) => setK(Number(event.target.value) || 1)} />
-              </label>
+              {error ? <p className="inline-error">{error}</p> : null}
 
-              <label className="field-group">
-                <span>mín. score</span>
-                <input type="number" min={0} max={1} step={0.1} value={minScore} onChange={(event) => setMinScore(Number(event.target.value) || 0)} />
-              </label>
-            </div>
-
-            {error ? <p className="inline-error">{error}</p> : null}
-
-            <button type="button" className="primary-button" onClick={handleSubmit}>Buscar</button>
-          </div>
-        </section>
-
-        <aside className="panel sidebar-panel">
-          <p className="eyebrow">Resultado</p>
-          <h2>Evidência</h2>
-          <div className="result-stack">
-            {hits.length === 0 ? <p className="muted-copy">Os trechos mais relevantes aparecerão aqui.</p> : hits.map((hit) => (
-              <article key={`${hit.book_id}-${hit.page_index}-${hit.text.slice(0, 12)}`} className="result-card">
-                <div className="result-head">
-                  <strong>{hit.title}</strong>
-                  <span>{hit.score.toFixed(2)}</span>
-                </div>
-                <p>{hit.text}</p>
-                <small>{hit.author} · página {hit.page_label ?? hit.page_index + 1}</small>
-              </article>
-            ))}
-          </div>
-
-          <div className="divider" />
-
-          {card ? (
-            <article className="result-card emphasis">
-              <div className="result-head">
-                <strong>{card.relation ?? 'Sem classificação'}</strong>
+              <div className="consult-results">
+                {loadingConnections ? <LoadingIndicator label="Construindo conexões" /> : null}
+                {!loadingConnections && card ? (
+                  <article className="rail-card">
+                    <p className="rail-card-summary">{card.card}</p>
+                    <span className="relation-badge">{card.relation ?? 'Sem classificação'}</span>
+                  </article>
+                ) : null}
+                {!loadingConnections && hits.map((hit) => (
+                  <article key={`${hit.book_id}-${hit.page_index}-${hit.text.slice(0, 12)}`} className="rail-hit">
+                    <p className="rail-hit-meta"><strong>{hit.author}</strong> · <span>{hit.title}, pág. {hit.page_label ?? hit.page_index + 1}</span><b>score {hit.score.toFixed(3)}</b></p>
+                    <p className="rail-hit-text">{hit.text}</p>
+                  </article>
+                ))}
               </div>
-              <p>{card.card}</p>
-            </article>
-          ) : (
-            <p className="muted-copy">O card de interpretação aparece depois da busca.</p>
-          )}
+            </section>
+          </div>
         </aside>
+
+        <section className="consult-book">
+          {bookId ? (
+            <ReaderPage
+              embedded
+              bookIdOverride={bookId}
+              externalSelectedText={text}
+              onSelectionChange={setText}
+            />
+          ) : (
+            <div className="empty-card">Envie um livro no perfil para começar a consultar.</div>
+          )}
+        </section>
       </main>
     </>
   )
