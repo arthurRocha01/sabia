@@ -1,5 +1,23 @@
 # Cliente
 
-Aplicação web em React. O design aprovado está em `../prototype` (tags
-`view-v1` e `view-v2`): o CSS passa quase inteiro, e o trabalho aqui é de
-estrutura de componentes e ligação com a API, não de redesenho.
+# Sabiá — cliente web
+
+Aplicação em React + TypeScript para leitura, consulta e gestão do acervo do Sabiá.
+
+## Variáveis de ambiente
+
+Crie um arquivo `.env` com:
+
+```
+VITE_SUPABASE_URL=https://<projeto>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+```
+
+## Scripts
+
+```
+npm install
+npm run dev
+```
+
+A aplicação conversa com o motor em `/api/*` e usa o Vite proxy configurado para `http://localhost:8000`.
