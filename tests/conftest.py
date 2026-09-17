@@ -121,6 +121,7 @@ class BancoFalso:
             "state": "queued",
             "next_batch": 0,
             "total_batches": campos["total_batches"],
+            "total_texts": campos["total_texts"],
             "texts_embedded": 0,
             "error_code": None,
         }

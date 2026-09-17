@@ -226,15 +226,21 @@ def set_current_line(cur: psycopg.Cursor, line: str) -> None:
 # Tarefas de ingestão
 # ---------------------------------------------------------------------------
 def create_job(
-    cur: psycopg.Cursor, *, owner_id: str, book_id: str, total_batches: int
+    cur: psycopg.Cursor,
+    *,
+    owner_id: str,
+    book_id: str,
+    total_batches: int,
+    total_texts: int,
 ) -> str:
     cur.execute(
         """
-        insert into public.jobs (owner_id, book_id, state, next_batch, total_batches)
-        values (%s, %s, 'queued', 0, %s)
+        insert into public.jobs (owner_id, book_id, state, next_batch,
+                                 total_batches, total_texts)
+        values (%s, %s, 'queued', 0, %s, %s)
         returning id
         """,
-        (owner_id, book_id, total_batches),
+        (owner_id, book_id, total_batches, total_texts),
     )
     return str(_only(cur, "o identificador da tarefa")[0])
 
@@ -297,8 +303,8 @@ def get_job(cur: psycopg.Cursor, job_id: str) -> dict | None:
     """Estado da tarefa, para a consulta de progresso."""
     cur.execute(
         """
-        select id, book_id, state, next_batch, total_batches, texts_embedded,
-               error_code
+        select id, book_id, state, next_batch, total_batches, total_texts,
+               texts_embedded, error_code
         from public.jobs where id = %s
         """,
         (job_id,),
@@ -307,7 +313,7 @@ def get_job(cur: psycopg.Cursor, job_id: str) -> dict | None:
     if not linha:
         return None
     colunas = ("id", "book_id", "state", "next_batch", "total_batches",
-               "texts_embedded", "error_code")
+               "total_texts", "texts_embedded", "error_code")
     return dict(zip(colunas, linha, strict=True))
 
 

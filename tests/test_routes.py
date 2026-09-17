@@ -159,11 +159,15 @@ def test_job_progress_returns_contract_fields(cliente, banco):
     banco.livro = _livro_json()
     banco.tarefa = {
         "id": TAREFA, "book_id": LIVRO, "state": "done", "next_batch": 3,
-        "total_batches": 3, "texts_embedded": 40, "error_code": None,
+        "total_batches": 3, "total_texts": 120, "texts_embedded": 40, "error_code": None,
     }
     resposta = cliente.get(f"/api/jobs/{TAREFA}")
     assert resposta.status_code == 200
     assert set(resposta.json()) == {"id", "book_id", "state", "processed", "total", "error_code"}
+    # `total` conta TRECHOS (o que o livro terá), não lotes: é o que permite
+    # ao cliente montar uma fração de progresso honesta.
+    assert resposta.json()["total"] == 120
+    assert resposta.json()["processed"] == 40
 
 
 def test_job_progress_drives_one_batch_and_finishes(cliente, banco, arquivos, pdf_com_texto):
@@ -172,7 +176,7 @@ def test_job_progress_drives_one_batch_and_finishes(cliente, banco, arquivos, pd
     banco.livro = _livro_json(status="preparing", storage_path=f"{LEITOR}/{LIVRO}.pdf")
     banco.tarefa = {
         "id": TAREFA, "book_id": LIVRO, "state": "queued", "next_batch": 0,
-        "total_batches": 1, "texts_embedded": 0, "error_code": None,
+        "total_batches": 1, "total_texts": 6, "texts_embedded": 0, "error_code": None,
     }
 
     resposta = cliente.get(f"/api/jobs/{TAREFA}")
@@ -189,7 +193,7 @@ def test_job_progress_does_nothing_when_already_done(cliente, banco):
     banco.livro = _livro_json()
     banco.tarefa = {
         "id": TAREFA, "book_id": LIVRO, "state": "done", "next_batch": 3,
-        "total_batches": 3, "texts_embedded": 40, "error_code": None,
+        "total_batches": 3, "total_texts": 120, "texts_embedded": 40, "error_code": None,
     }
     resposta = cliente.get(f"/api/jobs/{TAREFA}")
     assert resposta.status_code == 200
@@ -211,7 +215,7 @@ def test_falha_no_lote_marca_tarefa_e_livro_e_devolve_a_causa(
     banco.livro = _livro_json(status="preparing", storage_path=f"{LEITOR}/{LIVRO}.pdf")
     banco.tarefa = {
         "id": TAREFA, "book_id": LIVRO, "state": "queued", "next_batch": 0,
-        "total_batches": 1, "texts_embedded": 0, "error_code": None,
+        "total_batches": 1, "total_texts": 6, "texts_embedded": 0, "error_code": None,
     }
 
     class EmbedderQueFalha:
@@ -229,6 +233,18 @@ def test_falha_no_lote_marca_tarefa_e_livro_e_devolve_a_causa(
     assert resposta.json()["code"] == "quota_exhausted"
     assert banco.dados("fail_job")["error_code"] == "quota_exhausted"
     assert banco.chamou("fail_book")
+
+
+def test_profile_reports_the_day_usage(cliente, banco):
+    """O perfil carrega o consumo do dia: é o que decide se cabe nova ingestão."""
+    resposta = cliente.get("/api/profile")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {
+        "current_line": "estrategia",
+        "texts_today": 0,
+        "daily_limit": 1000,
+    }
 
 
 def test_job_unknown_returns_not_found(cliente, banco):
@@ -334,13 +350,14 @@ def test_interpret_falls_back_when_answer_is_not_json(cliente, banco, interpreta
 def test_profile_reads_the_current_line(cliente):
     resposta = cliente.get("/api/profile")
     assert resposta.status_code == 200
-    assert resposta.json() == {"current_line": "estrategia"}
+    assert resposta.json()["current_line"] == "estrategia"
 
 
 def test_profile_updates_the_current_line(cliente, banco):
     resposta = cliente.patch("/api/profile", json={"current_line": "poder"})
     assert resposta.status_code == 200
     assert banco.dados("set_current_line")["line"] == "poder"
+    assert resposta.json()["current_line"] == "poder"
 
 
 # ---------------------------------------------------------------------------

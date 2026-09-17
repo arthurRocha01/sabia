@@ -167,9 +167,17 @@ class InterpretationResponse(BaseModel):
 
 
 class Profile(BaseModel):
+    """A linha corrente e o consumo do dia.
+
+    O consumo entra aqui porque é a informação que o leitor precisa ver ao
+    enviar um livro: a cota é do projeto, não da conta, e o que resta no dia
+    decide se cabe mais uma ingestão.
+    """
     """Perfil do leitor. A linha corrente vale como padrão para novos livros."""
 
     current_line: Annotated[str | None, Field(default=None)] = None
+    texts_today: int = 0
+    daily_limit: int = 0
 
 
 class ProfileUpdate(BaseModel):

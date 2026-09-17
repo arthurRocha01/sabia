@@ -114,6 +114,6 @@ def _progresso(tarefa: dict) -> schemas.JobProgress:
         book_id=tarefa["book_id"],
         state=tarefa["state"],
         processed=tarefa["texts_embedded"],
-        total=tarefa["total_batches"],
+        total=tarefa["total_texts"],
         error_code=tarefa["error_code"],
     )

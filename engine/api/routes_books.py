@@ -89,7 +89,11 @@ async def enviar(
         )
         arquivos.upload(caminho, dados)
         tarefa = db.create_job(
-            cursor, owner_id=leitor.id, book_id=livro, total_batches=len(lotes)
+            cursor,
+            owner_id=leitor.id,
+            book_id=livro,
+            total_batches=len(lotes),
+            total_texts=len(preparado.chunks),
         )
         cota = quota_from(
             settings.quota_daily_texts, db.texts_embedded_today(cursor, leitor.id)
