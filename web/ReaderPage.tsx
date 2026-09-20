@@ -27,6 +27,7 @@ const ZOOM_INICIAL = 1.3
 const ZOOM_MINIMO = 0.6
 const ZOOM_MAXIMO = 3
 const PASSO_ZOOM = 0.2
+const paginaStoragePrefix = 'sabia_reader_page:'
 
 type ReaderPageProps = {
   embedded?: boolean
@@ -109,11 +110,15 @@ export default function ReaderPage({
         docRef.current = documento
         setPageCount(documento.numPages)
 
-        // Vindo de uma citação de outro livro, o pedido traz a página.
+        // Uma citação tem prioridade; caso contrário, retoma a última página
+        // visitada neste livro.
         const pedida = (local.state as { pagina?: number } | null)?.pagina
-        const inicial = pedida && pedida >= 1 && pedida <= documento.numPages ? pedida : 1
+        const salva = Number(localStorage.getItem(`${paginaStoragePrefix}${bookId}`))
+        const paginaSalva = Number.isInteger(salva) && salva >= 1 && salva <= documento.numPages ? salva : 1
+        const inicial = pedida && pedida >= 1 && pedida <= documento.numPages ? pedida : paginaSalva
         setPage(inicial)
         setAlvoDaPagina(String(inicial))
+        localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(inicial))
         setStatus('')
       } catch (caught) {
         if (!vivo) return
@@ -230,6 +235,7 @@ export default function ReaderPage({
     const destino = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
     setPage(destino)
     setAlvoDaPagina(String(destino))
+    if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
   }
 
   const buscarConexoes = async () => {
