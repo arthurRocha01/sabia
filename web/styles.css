@@ -945,8 +945,8 @@ textarea {
 }
 
 .consult-layout {
-  grid-template-columns: 256px minmax(0, 1fr);
-  gap: 30px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 26px;
   padding-top: 28px;
 }
 
@@ -1167,9 +1167,9 @@ textarea {
   align-items: end;
   justify-content: space-between;
   gap: 24px;
-  max-width: 1060px;
+  max-width: 1080px;
   margin: 0 auto 18px;
-  padding: 0 12px;
+  padding: 0 8px;
   border: 0;
 }
 
@@ -1205,7 +1205,7 @@ textarea {
 
 .consult-book .pdf-frame {
   display: block;
-  max-width: 1060px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -1311,9 +1311,9 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1060px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 18px 12px 0;
+  padding: 18px 8px 0;
   border-top: 1px solid var(--line);
 }
 
