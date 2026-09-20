@@ -44,6 +44,7 @@ def _interpretar(
     *,
     linha: str | None,
     card_length: str,
+    preferencias: str,
     interpretador: InterpretadorDep,
 ) -> Interpretation | None:
     """A interpretação, ou nada quando o modelo não responde.
@@ -58,6 +59,7 @@ def _interpretar(
             interpreter=interpretador,
             line=linha,
             card_length=card_length,
+            interpretation_profile=preferencias,
         )
     except (TimedOut, ProviderUnavailable):
         return None
@@ -87,8 +89,9 @@ def conectar(
         # O que fica registrado é o que foi de fato usado: a linha e o tamanho
         # podem ter vindo do perfil, e o limiar já é o efetivo.
         perfil = db.get_profile(cursor) or {}
-        linha = pedido.line if pedido.line is not None else perfil.get("current_line")
+        linha = perfil.get("current_line")
         tamanho = perfil.get("card_length") or "default"
+        preferencias = perfil.get("interpretation_profile") or ""
         db.save_query(
             cursor,
             owner_id=leitor.id,
@@ -101,6 +104,7 @@ def conectar(
             line=linha,
             policy_version=POLICY_VERSION,
             card_length=tamanho,
+            interpretation_profile=preferencias,
             hits=[
                 {"book_id": hit.book_id, "page_index": hit.page_index, "score": round(hit.score, 4)}
                 for hit in resultado.hits
@@ -112,6 +116,7 @@ def conectar(
         resultado,
         linha=linha,
         card_length=tamanho,
+        preferencias=preferencias,
         interpretador=interpretador,
     )
     return schemas.ConnectResponse(

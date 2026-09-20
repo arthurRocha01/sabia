@@ -90,6 +90,7 @@ def interpret(
     interpreter: Interpreter,
     line: str | None = None,
     card_length: str = "default",
+    interpretation_profile: str = "",
 ) -> Interpretation:
     """Interpreta a conexão a partir dos trechos recuperados.
 
@@ -99,7 +100,9 @@ def interpret(
     if not hits:
         return Interpretation(card=NO_CONNECTION, relation=None, citations=())
 
-    bruto = interpreter.interpret(build_prompt(selection, hits, line, card_length))
+    bruto = interpreter.interpret(
+        build_prompt(selection, hits, line, card_length, interpretation_profile)
+    )
     if not bruto.strip():
         raise ProviderUnavailable("o provedor de interpretação devolveu resposta vazia")
     return parse_answer(bruto, hits)

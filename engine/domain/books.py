@@ -21,11 +21,14 @@ MIN_TITLE = 2
 
 @dataclass(frozen=True)
 class NewBook:
-    """O que o leitor informa no envio. Título e autor nunca são adivinhados."""
+    """O que o leitor informa no envio. Título e autor nunca são adivinhados.
+
+    A linha de aprendizado não entra aqui: ela é corrente, do perfil, e lida na
+    hora da consulta — o livro não carrega linha.
+    """
 
     title: str
     author: str
-    line: str
 
 
 @dataclass(frozen=True)
@@ -51,14 +54,14 @@ class FileStore(Protocol):
     def remove(self, path: str) -> None: ...
 
 
-def validate_meta(title: str, author: str, line: str) -> NewBook:
+def validate_meta(title: str, author: str) -> NewBook:
     """Confere o que o leitor informou antes de qualquer custo."""
     titulo, autor = title.strip(), author.strip()
     if len(titulo) < MIN_TITLE:
         raise InvalidInput("informe o título do livro")
     if len(autor) < MIN_TITLE:
         raise InvalidInput("informe o autor do livro")
-    return NewBook(title=titulo, author=autor, line=line.strip())
+    return NewBook(title=titulo, author=autor)
 
 
 def file_hash(data: bytes) -> str:

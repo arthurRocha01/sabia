@@ -22,7 +22,7 @@ from collections.abc import Sequence
 
 from engine.core.errors import InvalidInput
 
-POLICY_VERSION = "1"
+POLICY_VERSION = "2"
 
 NO_CONNECTION = "Nenhuma conexão relevante identificada."
 
@@ -45,6 +45,25 @@ CARD_LENGTH_CLAUSE = {
 }
 
 
+def _preferencias(texto: str) -> str:
+    """A seção do perfil de interpretação, quando o leitor escreveu algo.
+
+    A hierarquia é declarada aqui, e não na cabeça do leitor: as preferências
+    ajustam tom e ênfase; não mudam formato, língua, fontes, vocabulário nem as
+    regras da política. Sem esta frase, o texto do leitor compete com a política
+    como se fosse igual a ela.
+    """
+    if not texto.strip():
+        return ""
+    return f"""
+Preferências do leitor — ajustam o tom, a ênfase e o que valorizar; não mudam o
+formato da resposta, a língua, as fontes, o vocabulário de `relation` nem as
+regras desta política:
+
+{texto.strip()}
+"""
+
+
 def _page(hit) -> str:
     """Como a página do trecho aparece para o modelo, e só para ele."""
     return f"página {hit.page_label}" if hit.page_label else f"posição {hit.page_index + 1}"
@@ -55,6 +74,7 @@ def build_prompt(
     hits: Sequence,
     line: str | None = None,
     card_length: str = "default",
+    interpretation_profile: str = "",
 ) -> str:
     """Monta o pedido ao modelo a partir dos trechos efetivamente recuperados."""
     if card_length not in CARD_LENGTHS:
@@ -78,7 +98,7 @@ trecho consultado e sem repetir os títulos — a interface já os mostra.
 Classifique a relação predominante com uma destas palavras, em inglês:
 complement, contradiction, nuance, same_concept. Se as relações estiverem
 misturadas, a que predomina no conjunto.
-
+{_preferencias(interpretation_profile)}
 Não invente: toda afirmação sobre uma obra, um autor ou uma passagem precisa
 estar sustentada no trecho citado. Não atribua a um autor o que o trecho não
 diz, e não invente página nem fonte.

@@ -96,7 +96,6 @@ def create_book(
     owner_id: str,
     title: str,
     author: str,
-    line: str,
     file_hash: str,
     storage_path: str,
     page_count: int,
@@ -107,9 +106,9 @@ def create_book(
     cur.execute(
         """
         insert into public.books
-            (id, owner_id, title, author, line, status, file_hash, storage_path,
+            (id, owner_id, title, author, status, file_hash, storage_path,
              page_count, n_chunks, segment_map)
-        values (coalesce(%s::uuid, gen_random_uuid()), %s, %s, %s, %s, 'preparing',
+        values (coalesce(%s::uuid, gen_random_uuid()), %s, %s, %s, 'preparing',
                 %s, %s, %s, %s, %s::jsonb)
         returning id
         """,
@@ -118,7 +117,6 @@ def create_book(
             owner_id,
             title,
             author,
-            line,
             file_hash,
             storage_path,
             page_count,
@@ -133,7 +131,7 @@ def get_book(cur: psycopg.Cursor, book_id: str) -> dict | None:
     """Ficha de um livro. A política de acesso já limita ao dono."""
     cur.execute(
         """
-        select id, title, author, line, status, file_hash, storage_path,
+        select id, title, author, status, file_hash, storage_path,
                page_count, n_chunks, ingested_at, created_at
         from public.books where id = %s
         """,
@@ -142,23 +140,22 @@ def get_book(cur: psycopg.Cursor, book_id: str) -> dict | None:
     linha = cur.fetchone()
     if not linha:
         return None
-    colunas = ("id", "title", "author", "line", "status", "file_hash",
+    colunas = ("id", "title", "author", "status", "file_hash",
                "storage_path", "page_count", "n_chunks", "ingested_at", "created_at")
     return dict(zip(colunas, linha, strict=True))
 
 
 def update_book(
-    cur: psycopg.Cursor, book_id: str, *, title: str | None, author: str | None, line: str | None
+    cur: psycopg.Cursor, book_id: str, *, title: str | None, author: str | None
 ) -> None:
     """Edita metadados: não exige re-ingerir nada."""
     cur.execute(
         """
         update public.books
-        set title = coalesce(%s, title), author = coalesce(%s, author),
-            line = coalesce(%s, line)
+        set title = coalesce(%s, title), author = coalesce(%s, author)
         where id = %s
         """,
-        (title, author, line, book_id),
+        (title, author, book_id),
     )
 
 
@@ -171,7 +168,7 @@ def list_books(cur: psycopg.Cursor, owner_id: str) -> list[dict]:
     """Acervo de quem pediu, do mais recente para o mais antigo."""
     cur.execute(
         """
-        select id, title, author, line, status, page_count, n_chunks,
+        select id, title, author, status, page_count, n_chunks,
                ingested_at, created_at
         from public.books
         where owner_id = %s
@@ -179,7 +176,7 @@ def list_books(cur: psycopg.Cursor, owner_id: str) -> list[dict]:
         """,
         (owner_id,),
     )
-    colunas = ("id", "title", "author", "line", "status", "page_count", "n_chunks",
+    colunas = ("id", "title", "author", "status", "page_count", "n_chunks",
                "ingested_at", "created_at")
     return [dict(zip(colunas, linha, strict=True)) for linha in cur.fetchall()]
 
@@ -206,11 +203,18 @@ def fail_book(cur: psycopg.Cursor, *, book_id: str) -> None:
 # ---------------------------------------------------------------------------
 def get_profile(cur: psycopg.Cursor) -> dict | None:
     """Perfil de quem está conectado. O dono vem da política, não do código."""
-    cur.execute("select id, current_line, card_length from public.profiles limit 1")
+    cur.execute(
+        "select id, current_line, card_length, interpretation_profile from public.profiles limit 1"
+    )
     linha = cur.fetchone()
     if not linha:
         return None
-    return {"id": str(linha[0]), "current_line": linha[1], "card_length": linha[2]}
+    return {
+        "id": str(linha[0]),
+        "current_line": linha[1],
+        "card_length": linha[2],
+        "interpretation_profile": linha[3],
+    }
 
 
 def set_current_line(cur: psycopg.Cursor, line: str) -> None:
@@ -220,6 +224,16 @@ def set_current_line(cur: psycopg.Cursor, line: str) -> None:
     re-ingerido.
     """
     cur.execute("update public.profiles set current_line = %s", (line,))
+
+
+def set_interpretation_profile(cur: psycopg.Cursor, texto: str) -> None:
+    """Grava o perfil de interpretação do leitor.
+
+    É texto dele sobre como quer a leitura — não é a linha de aprendizado, que
+    diz sobre o que ele lê. Vazio significa "sem preferências", e o pedido ao
+    modelo sai sem a seção.
+    """
+    cur.execute("update public.profiles set interpretation_profile = %s", (texto,))
 
 
 def set_card_length(cur: psycopg.Cursor, card_length: str) -> None:
@@ -359,6 +373,7 @@ def save_query(
     line: str | None,
     policy_version: str,
     card_length: str,
+    interpretation_profile: str,
     hits: Iterable[dict],
 ) -> None:
     """Registra a consulta e o que ela devolveu.
@@ -370,8 +385,8 @@ def save_query(
         """
         insert into public.queries
             (owner_id, book_id, query_text, word_count, scope, min_score, k, line,
-             policy_version, card_length, hits)
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+             policy_version, card_length, interpretation_profile, hits)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
         """,
         (
             owner_id,
@@ -384,6 +399,7 @@ def save_query(
             line,
             policy_version,
             card_length,
+            interpretation_profile,
             json.dumps(list(hits), ensure_ascii=False),
         ),
     )

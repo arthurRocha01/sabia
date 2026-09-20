@@ -78,6 +78,7 @@ class BancoFalso:
             "id": LEITOR,
             "current_line": "estrategia",
             "card_length": "default",
+            "interpretation_profile": "",
         }
         self.hits: list[dict] = []
         self.arquivo_existente: str | None = None
@@ -96,6 +97,10 @@ class BancoFalso:
     def set_current_line(self, _cursor, line):
         self._anota("set_current_line", line=line)
         self.perfil = {**(self.perfil or {}), "id": LEITOR, "current_line": line}
+
+    def set_interpretation_profile(self, _cursor, texto):
+        self._anota("set_interpretation_profile", texto=texto)
+        self.perfil = {**(self.perfil or {}), "id": LEITOR, "interpretation_profile": texto}
 
     def set_card_length(self, _cursor, card_length):
         self._anota("set_card_length", card_length=card_length)
@@ -212,7 +217,8 @@ def banco(monkeypatch) -> BancoFalso:
         "list_books", "get_profile", "set_current_line", "get_book", "update_book",
         "delete_book", "find_book", "create_book", "create_job", "get_job",
         "start_job", "advance_job", "finish_book", "fail_job", "fail_book",
-        "texts_embedded_today", "save_query", "search_chunks", "set_card_length",
+        "texts_embedded_today", "save_query", "search_chunks",
+        "set_card_length", "set_interpretation_profile",
     ):
         monkeypatch.setattr(db, nome, getattr(falso, nome))
     return falso

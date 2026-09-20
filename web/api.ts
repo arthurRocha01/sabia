@@ -89,6 +89,7 @@ export async function getProfile(): Promise<Profile> {
 export async function updateProfile(changes: {
   current_line?: string
   card_length?: CardLength
+  interpretation_profile?: string
 }): Promise<Profile> {
   return apiFetch<Profile>('/profile', {
     method: 'PATCH',
@@ -108,7 +109,7 @@ export async function uploadBook(formData: FormData): Promise<{ job_id: string; 
   })
 }
 
-export async function updateBook(bookId: string, payload: { title?: string; author?: string; line?: string }): Promise<Book> {
+export async function updateBook(bookId: string, payload: { title?: string; author?: string }): Promise<Book> {
   return apiFetch<Book>(`/books/${bookId}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),

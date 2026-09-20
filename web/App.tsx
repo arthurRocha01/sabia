@@ -264,10 +264,6 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
               <span>Autor</span>
               <input type="text" name="author" placeholder="Autor" required />
             </label>
-            <label className="field-group">
-              <span>Linha (opcional)</span>
-              <input type="text" name="line" placeholder="Linha de aprendizado" />
-            </label>
             <button type="submit" className="primary-button" disabled={busy}>
               {busy ? 'Enviando…' : 'Enviar PDF'}
             </button>
@@ -320,9 +316,8 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                       const form = event.currentTarget
                       const title = (form.elements.namedItem('title') as HTMLInputElement)?.value
                       const author = (form.elements.namedItem('author') as HTMLInputElement)?.value
-                      const line = (form.elements.namedItem('line') as HTMLInputElement)?.value
                       try {
-                        await updateBook(book.id, { title: title || undefined, author: author || undefined, line: line || undefined })
+                        await updateBook(book.id, { title: title || undefined, author: author || undefined })
                         await loadData()
                       } catch (caught) {
                         setError(formatError(caught))
@@ -331,7 +326,6 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                   >
                     <input type="text" name="title" defaultValue={book.title} />
                     <input type="text" name="author" defaultValue={book.author} />
-                    <input type="text" name="line" defaultValue={book.line ?? ''} />
                     <button type="submit" className="ghost-button">Salvar</button>
                   </form>
                 </article>
@@ -341,28 +335,62 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
         </section>
 
         <aside className="panel sidebar-panel">
-          <p className="eyebrow">Conta</p>
-          <h2>Consumo do dia</h2>
           {profile ? (
             <>
-              <form className="line-form" onSubmit={async (event) => {
-                event.preventDefault()
-                const form = event.currentTarget
-                const currentLine = (form.elements.namedItem('current_line') as HTMLInputElement).value
-                try {
-                  setProfile(await updateProfile({ current_line: currentLine }))
-                } catch (caught) {
-                  setError(formatError(caught))
-                }
-              }}>
-                <label className="field-group">
-                  <span>Linha corrente</span>
-                  <input name="current_line" defaultValue={profile.current_line ?? ''} placeholder="Sua linha de aprendizado" />
-                </label>
-                <button type="submit" className="secondary-button">Salvar linha</button>
-              </form>
+              <section className="side-block">
+                <p className="eyebrow">Leitura</p>
+                <h2>Assunto atual</h2>
+                <form className="line-form" onSubmit={async (event) => {
+                  event.preventDefault()
+                  const form = event.currentTarget
+                  const currentLine = (form.elements.namedItem('current_line') as HTMLInputElement).value
+                  try {
+                    setProfile(await updateProfile({ current_line: currentLine }))
+                    setError('')
+                  } catch (caught) {
+                    setError(formatError(caught))
+                  }
+                }}>
+                  <label className="field-group">
+                    <span>Linha de aprendizado</span>
+                    <input name="current_line" defaultValue={profile.current_line ?? ''} placeholder="Sobre o que você está lendo" />
+                  </label>
+                  <button type="submit" className="secondary-button">Salvar linha</button>
+                  <p className="hint">
+                    O assunto da leitura. Vale como padrão para novos livros e vai ao motor como contexto.
+                  </p>
+                </form>
+              </section>
 
-              <div className="field-group card-length">
+              <section className="side-block">
+                <p className="eyebrow">Como ler</p>
+                <h2>Perfil de interpretação</h2>
+
+                <form className="profile-form" onSubmit={async (event) => {
+                  event.preventDefault()
+                  const form = event.currentTarget
+                  const texto = (form.elements.namedItem('interpretation_profile') as HTMLTextAreaElement).value
+                  try {
+                    setProfile(await updateProfile({ interpretation_profile: texto }))
+                    setError('')
+                  } catch (caught) {
+                    setError(formatError(caught))
+                  }
+                }}>
+                  <label className="field-group">
+                    <span>Como interpretar</span>
+                    <textarea
+                      name="interpretation_profile"
+                      rows={4}
+                      maxLength={1200}
+                      defaultValue={profile.interpretation_profile}
+                      placeholder="Ex.: valorize a contradição antes da concordância; sem metáfora; compare com o meu trabalho."
+                    />
+                  </label>
+                  <button type="submit" className="secondary-button">Salvar perfil</button>
+                </form>
+
+                <div className="field-group card-length">
                 <span>Tamanho da interpretação</span>
                 <div className="segmented" role="group" aria-label="Tamanho da interpretação">
                   {(
@@ -390,18 +418,25 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                     </button>
                   ))}
                 </div>
+                </div>
                 <p className="hint">
-                  Padrão até três frases · Alto até oito · Livre deixa o modelo decidir pelo material.
+                  O texto acima ajusta o tom e o que enfatizar; o tamanho diz quanto o card pode crescer.
+                  Nenhum dos dois muda o formato da resposta, a língua ou as fontes — isso é da política do motor.
                 </p>
-              </div>
-              <div className="metric-row">
-                <span>Textos hoje</span>
-                <strong>{profile.texts_today}</strong>
-              </div>
-              <div className="metric-row">
-                <span>Limite diário</span>
-                <strong>{profile.daily_limit}</strong>
-              </div>
+              </section>
+
+              <section className="side-block">
+                <p className="eyebrow">Conta</p>
+                <h2>Consumo do dia</h2>
+                <div className="metric-row">
+                  <span>Textos hoje</span>
+                  <strong>{profile.texts_today}</strong>
+                </div>
+                <div className="metric-row">
+                  <span>Limite diário</span>
+                  <strong>{profile.daily_limit}</strong>
+                </div>
+              </section>
             </>
           ) : (
             <p className="muted-copy">Carregando perfil…</p>

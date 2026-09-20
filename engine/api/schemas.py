@@ -77,7 +77,7 @@ class Book(BaseModel):
     id: UUID
     title: str
     author: str
-    line: str = Field(description="Linha de aprendizado do livro, escrita pelo usuário.")
+    # Sem linha: ela é corrente, do perfil, e não um atributo do livro.
     status: BookStatus
     page_count: int | None = None
     n_chunks: int | None = Field(default=None, description="Trechos do livro.")
@@ -94,7 +94,6 @@ class BookUpdate(BaseModel):
 
     title: str | None = None
     author: str | None = None
-    line: str | None = None
 
 
 class IngestionAccepted(BaseModel):
@@ -141,9 +140,7 @@ class ConnectRequest(BaseModel):
     )
     k: int = Field(default=3, ge=1, le=MAX_K)
     min_score: float = Field(default=0.0, ge=0.0, le=1.0)
-    line: str | None = Field(
-        default=None, description="Linha de aprendizado em uso; sem ela, usa a do perfil."
-    )
+    # Sem linha no pedido: quem a define é o perfil, e o motor a lê na hora.
 
 
 class Citation(BaseModel):
@@ -187,6 +184,9 @@ class Profile(BaseModel):
 
     current_line: Annotated[str | None, Field(default=None)] = None
     card_length: CardLength = CardLength.default
+    interpretation_profile: str = Field(
+        default="", description="Como o leitor quer a interpretação. Não é a linha de aprendizado."
+    )
     texts_today: int = 0
     daily_limit: int = 0
 
@@ -196,3 +196,4 @@ class ProfileUpdate(BaseModel):
 
     current_line: str | None = None
     card_length: CardLength | None = None
+    interpretation_profile: Annotated[str | None, Field(default=None, max_length=1200)] = None

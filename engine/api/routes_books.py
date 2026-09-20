@@ -45,7 +45,6 @@ async def enviar(
     file: Annotated[UploadFile, File()],
     title: Annotated[str, Form()],
     author: Annotated[str, Form()],
-    line: Annotated[str | None, Form()] = None,
     token: TokenDep = "",
 ) -> schemas.IngestionAccepted:
     """Recebe o arquivo e devolve a tarefa de ingestão.
@@ -55,9 +54,9 @@ async def enviar(
     """
     dados = await file.read()
     with conexao.cursor() as cursor:
-        perfil = db.get_profile(cursor) or {}
-        linha = (line if line is not None else perfil.get("current_line")) or ""
-        meta = validate_meta(title, author, linha)
+        # A linha de aprendizado não entra: ela é corrente, do perfil, e lida na
+        # hora da consulta. O livro é título, autor e conteúdo.
+        meta = validate_meta(title, author)
 
         # Portão: nada é gravado antes disto.
         preparado = prepare(read_book(dados))
@@ -80,7 +79,6 @@ async def enviar(
             owner_id=leitor.id,
             title=meta.title,
             author=meta.author,
-            line=meta.line,
             file_hash=resumo,
             storage_path=caminho,
             page_count=preparado.page_count,
@@ -114,7 +112,7 @@ def editar(
     leitor: ReaderDep,
     conexao: ConexaoDep,
 ) -> schemas.Book:
-    """Edita título, autor ou linha: é metadado, nada é re-ingerido."""
+    """Edita título ou autor: é metadado, nada é re-ingerido."""
     with conexao.cursor() as cursor:
         if not db.get_book(cursor, str(book_id)):
             raise BookNotFound("livro não encontrado no seu acervo")
@@ -123,7 +121,6 @@ def editar(
             str(book_id),
             title=mudanca.title,
             author=mudanca.author,
-            line=mudanca.line,
         )
         return schemas.Book(**db.get_book(cursor, str(book_id)))
 

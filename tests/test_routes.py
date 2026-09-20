@@ -51,9 +51,11 @@ def test_lists_books_with_contract_fields(cliente, banco):
     assert resposta.status_code == 200
     livro = resposta.json()["books"][0]
     assert set(livro) == {
-        "id", "title", "author", "line", "status", "page_count", "n_chunks",
+        "id", "title", "author", "status", "page_count", "n_chunks",
         "ingested_at", "created_at",
     }
+    # O livro não carrega linha: ela é corrente, do perfil, e lida na consulta.
+    assert "line" not in livro
 
 
 def test_rejects_book_without_title(cliente, pdf_com_texto):
@@ -100,7 +102,7 @@ def test_accepts_book_and_creates_job(cliente, banco, arquivos, pdf_com_texto):
     criado = banco.dados("create_book")
     assert criado["n_chunks"] == corpo["estimated_texts"]
     assert criado["owner_id"] == LEITOR
-    assert criado["line"] == "estrategia"  # veio do perfil, sem linha no envio
+    assert "line" not in criado, "o livro não guarda linha de aprendizado"
     assert arquivos["enviados"], "o arquivo precisa subir para o armazenamento"
 
 
@@ -121,9 +123,12 @@ def test_replacing_the_same_file_removes_the_previous_one(cliente, banco, arquiv
 
 def test_patch_updates_metadata(cliente, banco):
     banco.livro = _livro_json()
-    resposta = cliente.patch(f"/api/books/{LIVRO}", json={"line": "poder"})
+    resposta = cliente.patch(f"/api/books/{LIVRO}", json={"title": "A Arte da Guerra (ed. 2)"})
     assert resposta.status_code == 200
-    assert banco.dados("update_book")["line"] == "poder"
+    mudanca = banco.dados("update_book")
+    assert mudanca["title"] == "A Arte da Guerra (ed. 2)"
+    # A linha saiu do livro: mandá-la não muda nada.
+    assert "line" not in mudanca
 
 
 def test_patch_unknown_book_returns_not_found(cliente, banco):
@@ -243,6 +248,7 @@ def test_profile_reports_the_day_usage(cliente, banco):
     assert resposta.json() == {
         "current_line": "estrategia",
         "card_length": "default",
+        "interpretation_profile": "",
         "texts_today": 0,
         "daily_limit": 1000,
     }
@@ -437,6 +443,43 @@ def test_profile_updates_the_card_length(cliente, banco):
     assert resposta.status_code == 200
     assert banco.dados("set_card_length")["card_length"] == "long"
     assert resposta.json()["card_length"] == "long"
+
+
+def test_profile_returns_an_empty_interpretation_profile(cliente):
+    assert cliente.get("/api/profile").json()["interpretation_profile"] == ""
+
+
+def test_profile_updates_the_interpretation_profile(cliente, banco):
+    texto = "Valorize a contradição e seja direto; sem metáfora."
+    resposta = cliente.patch("/api/profile", json={"interpretation_profile": texto})
+    assert resposta.status_code == 200
+    assert banco.dados("set_interpretation_profile")["texto"] == texto
+    assert resposta.json()["interpretation_profile"] == texto
+    # Perfil de interpretação não é a linha de aprendizado: mexer num não toca o outro.
+    assert not banco.chamou("set_current_line")
+
+
+def test_the_reader_preferences_enter_the_prompt_with_hierarchy(cliente, banco, interpretador):
+    """O texto do leitor entra em seção nomeada, e não como igual à política."""
+    banco.hits = [_hit()]
+    banco.perfil["interpretation_profile"] = "Valorize a contradição e seja direto."
+    cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
+    prompt = interpretador.pedidos[0]
+    assert "Preferências do leitor" in prompt
+    assert "Valorize a contradição e seja direto." in prompt
+    assert "não mudam o" in prompt
+    assert "formato da resposta" in prompt
+    # A política continua no lugar dela, e a consulta guarda o que foi usado.
+    assert "Não invente" in prompt
+    registro = banco.dados("save_query")
+    assert registro["interpretation_profile"] == "Valorize a contradição e seja direto."
+
+
+def test_without_preferences_the_section_does_not_appear(cliente, banco, interpretador):
+    banco.hits = [_hit()]
+    banco.perfil["interpretation_profile"] = "   "
+    cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
+    assert "Preferências do leitor" not in interpretador.pedidos[0]
 
 
 def test_profile_rejects_a_patch_with_nothing_to_change(cliente):

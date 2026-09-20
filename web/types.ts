@@ -7,7 +7,7 @@ export interface Book {
   id: string
   title: string
   author: string
-  line: string | null
+  // Sem linha: ela é corrente, do perfil, e não um atributo do livro.
   status: BookStatus
   page_count: number | null
   n_chunks: number | null
@@ -44,7 +44,6 @@ export interface ConnectRequest {
   book_id?: string | null
   k?: number
   min_score?: number
-  line?: string | null
 }
 
 export interface ConnectResponse {
@@ -76,6 +75,8 @@ export type CardLength = 'default' | 'long' | 'free'
 export interface Profile {
   current_line: string | null
   card_length: CardLength
+  /** Como o leitor quer a interpretação. Não é a linha de aprendizado. */
+  interpretation_profile: string
   texts_today: number
   daily_limit: number
 }

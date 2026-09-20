@@ -160,6 +160,19 @@ def main() -> int:
             "mudar o tamanho não toca a linha corrente",
             tamanho.json()["current_line"] == "estrategia",
         )
+        preferencias = cliente.patch(
+            "/api/profile",
+            json={"interpretation_profile": "Valorize a contradição antes da concordância."},
+        )
+        confere(
+            "o perfil de interpretação é gravado",
+            preferencias.json()["interpretation_profile"]
+            == "Valorize a contradição antes da concordância.",
+        )
+        confere(
+            "o perfil de interpretação não mexe na linha",
+            preferencias.json()["current_line"] == "estrategia",
+        )
         confere("a linha corrente é atualizável", troca.status_code == 200)
 
         print("\n=== acervo ===")

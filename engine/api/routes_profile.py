@@ -24,6 +24,7 @@ def _ficha(cursor, leitor, settings) -> schemas.Profile:
     return schemas.Profile(
         current_line=perfil.get("current_line"),
         card_length=perfil.get("card_length") or schemas.CardLength.default,
+        interpretation_profile=perfil.get("interpretation_profile") or "",
         texts_today=db.texts_embedded_today(cursor, leitor.id),
         daily_limit=settings.quota_daily_texts,
     )
@@ -40,11 +41,19 @@ def atualizar(
     mudanca: schemas.ProfileUpdate, leitor: ReaderDep, conexao: ConexaoDep, settings: ConfigDep
 ) -> schemas.Profile:
     """Troca o que o leitor mudou. Nenhum vetor é tocado, nada é re-ingido."""
-    if mudanca.current_line is None and mudanca.card_length is None:
-        raise InvalidInput("nada a mudar: informe a linha ou o tamanho do card")
+    if (
+        mudanca.current_line is None
+        and mudanca.card_length is None
+        and mudanca.interpretation_profile is None
+    ):
+        raise InvalidInput(
+            "nada a mudar: informe a linha, o tamanho do card ou o perfil de interpretação"
+        )
     with conexao.cursor() as cursor:
         if mudanca.current_line is not None:
             db.set_current_line(cursor, mudanca.current_line.strip())
         if mudanca.card_length is not None:
             db.set_card_length(cursor, mudanca.card_length.value)
+        if mudanca.interpretation_profile is not None:
+            db.set_interpretation_profile(cursor, mudanca.interpretation_profile.strip())
         return _ficha(cursor, leitor, settings)
