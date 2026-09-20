@@ -534,5 +534,20 @@ def test_openapi_pins_the_contract_field_names(cliente):
     assert set(componentes["ErrorResponse"]["properties"]) == {"code", "message", "detail"}
     assert set(esquema["paths"]) == {
         "/api/books", "/api/books/{book_id}", "/api/books/{book_id}/file",
-        "/api/jobs/{job_id}", "/api/connect", "/api/profile",
+        "/api/jobs/{job_id}", "/api/connect", "/api/profile", "/api/read-image",
     }
+
+
+def test_read_image_transcribes_the_crop(cliente):
+    """Uma página sem texto: o recorte vira texto, e o texto segue para a busca."""
+    resposta = cliente.post("/api/read-image", json={"image": "cG5nLWZhbHNv"})
+
+    assert resposta.status_code == 200
+    assert resposta.json()["text"]
+
+
+def test_read_image_rejects_what_is_not_base64(cliente):
+    resposta = cliente.post("/api/read-image", json={"image": "isso não é base64"})
+
+    assert resposta.status_code == 400
+    assert resposta.json()["code"] == "invalid_input"

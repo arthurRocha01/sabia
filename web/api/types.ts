@@ -91,3 +91,7 @@ export interface ErrorResponse {
   message: string
   detail?: string
 }
+
+export type ReadImageResponse = {
+  text: string
+}

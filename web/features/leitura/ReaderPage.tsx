@@ -28,6 +28,8 @@ import BookToolbar from './BookToolbar'
 import EvidencePanel from './EvidencePanel'
 import BookFooter from './BookFooter'
 import TextSelection from './TextSelection'
+import type { PointerEvent as ReactPointerEvent } from 'react'
+import { readImage } from '../../api/read'
 
 // O parsing roda fora da linha principal, num worker; é ele que não deixa a
 // rolagem travar em página grande.
@@ -58,6 +60,13 @@ type TextPosition = {
 
 const normalizarTexto = (texto: string) => texto.replace(/\s+/g, ' ').trim()
 
+type CaixaDeMarcacao = {
+  esquerda: number
+  topo: number
+  largura: number
+  altura: number
+}
+
 export default function ReaderPage({
   embedded = false,
   bookIdOverride,
@@ -78,6 +87,11 @@ export default function ReaderPage({
   const [page, setPage] = useState(1)
   const [pageTarget, setPageTarget] = useState('1')
   const [paginasVisiveis, setPaginasVisiveis] = useState(2)
+  // Uma página por página: capa e ilustração não têm texto, e sem isto o
+  // arraste simplesmente não faz nada, sem explicação.
+  const [paginasComTexto, setPaginasComTexto] = useState<boolean[]>([])
+  const [marcando, setMarcando] = useState(false)
+  const [caixaDaMarcacao, setCaixaDaMarcacao] = useState<CaixaDeMarcacao | null>(null)
   const [zoom, setZoom] = useState(ZOOM_INICIAL)
   const [status, setStatus] = useState('carregando o arquivo…')
   const [selectedText, setSelectedText] = useState(externalSelectedText ?? '')
@@ -93,6 +107,13 @@ export default function ReaderPage({
 
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([])
   const layerRefs = useRef<Array<HTMLDivElement | null>>([])
+  // A marcação é uma faixa: o dedo define a altura e a largura é a da página.
+  const origemDaMarcacao = useRef<{
+    y: number
+    esquerda: number
+    largura: number
+    base: DOMRect
+  } | null>(null)
   const pageRefs = useRef<Array<HTMLDivElement | null>>([])
   const bookStageRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
@@ -370,6 +391,7 @@ export default function ReaderPage({
       }
     })
 
+    const comTexto: boolean[] = []
     void (async () => {
       const paginas = Array.from({ length: paginasVisiveis }, (_, index) => page + index)
         .filter((numero) => numero <= pageCount)
@@ -412,6 +434,9 @@ export default function ReaderPage({
         layer.style.setProperty('--total-scale-factor', String(escala))
         const conteudo = await pagina.getTextContent()
         if (marca !== desenhoRef.current) return
+        comTexto[index] = conteudo.items.some(
+          (item) => 'str' in item && item.str.trim().length > 1,
+        )
 
         const camada = new pdfjs.TextLayer({
           textContentSource: conteudo,
@@ -422,7 +447,10 @@ export default function ReaderPage({
         pdfjs.setLayerDimensions(layer, vista)
       }))
 
-      if (marca === desenhoRef.current) setPaginaRenderizada(true)
+      if (marca === desenhoRef.current) {
+        setPaginaRenderizada(true)
+        setPaginasComTexto([...comTexto])
+      }
     })().catch((caught) => {
       if (marca === desenhoRef.current) mostrarErro(formatError(caught))
     })
@@ -433,10 +461,22 @@ export default function ReaderPage({
 
   /** Ao soltar o mouse, o que ficou selecionado vira o trecho a conectar. */
   const capturarSelecao = useCallback(() => {
-    const bruto = window.getSelection()?.toString() ?? ''
+    const selecao = window.getSelection()
+    const bruto = selecao?.toString() ?? ''
+    // A seleção só vale se estiver inteira dentro de uma camada de texto do
+    // livro. Arrastar sobre a interface (ou do rail para a página) produz uma
+    // seleção de elementos alheios, que não é trecho de obra nenhuma — e ela
+    // já entrou no campo uma vez, misturando rótulos da tela com o livro.
+    const dentroDaLayer = (() => {
+      if (!selecao || selecao.rangeCount === 0) return false
+      const faixa = selecao.getRangeAt(0)
+      return layerRefs.current.some(
+        (layer) => layer && layer.contains(faixa.startContainer) && layer.contains(faixa.endContainer),
+      )
+    })()
     // Os trechos vêm fatiados por linha: junta os espaços e as quebras.
     const limpo = bruto.replace(/\s+/g, ' ').trim()
-    if (limpo) {
+    if (dentroDaLayer && limpo) {
       setSelectedText(limpo)
       onSelectionChange?.(limpo)
     }
@@ -447,12 +487,205 @@ export default function ReaderPage({
       const selecao = window.getSelection()
       const ancora = selecao?.anchorNode
       const elemento = ancora instanceof Element ? ancora : ancora?.parentElement
-      if (!elemento?.closest('.textLayer') || !selecao?.toString()) return
+      if (!elemento?.closest('.pdf-page') || !selecao?.toString()) return
       capturarSelecao()
     }
     document.addEventListener('selectionchange', atualizarSelecao)
     return () => document.removeEventListener('selectionchange', atualizarSelecao)
   }, [capturarSelecao])
+
+  /**
+   * No celular não existe arrastar para selecionar: arrastar rola a página, e o
+   * toque longo sobre texto quase invisível não abre a seleção. Aqui o toque
+   * longo escolhe a palavra sob o dedo e entrega ao navegador — a partir daí os
+   * marcadores nativos aparecem e a seleção pode ser esticada à vontade.
+   */
+  useEffect(() => {
+    const palco = bookStageRef.current
+    if (!palco || !('caretRangeFromPoint' in document)) return
+
+    let relogio = 0
+    let inicio: { x: number; y: number } | null = null
+
+    const cancelar = () => {
+      window.clearTimeout(relogio)
+      inicio = null
+    }
+
+    const escolherPalavra = () => {
+      if (!inicio) return
+      const faixa = document.caretRangeFromPoint(inicio.x, inicio.y)
+      const no = faixa?.startContainer
+      if (!faixa || !no || no.nodeType !== Node.TEXT_NODE) return
+      if (!no.parentElement?.closest('.textLayer')) return
+
+      const texto = (no as Text).data
+      const ehLetra = (indice: number) =>
+        indice >= 0 && indice < texto.length && /[\p{L}\p{N}]/u.test(texto[indice])
+      let comeco = faixa.startOffset
+      let fim = faixa.startOffset
+      while (ehLetra(comeco - 1)) comeco -= 1
+      while (ehLetra(fim)) fim += 1
+      if (comeco === fim) return
+
+      const palavra = document.createRange()
+      palavra.setStart(no, comeco)
+      palavra.setEnd(no, fim)
+      const selecao = window.getSelection()
+      selecao?.removeAllRanges()
+      selecao?.addRange(palavra)
+    }
+
+    const aoTocar = (evento: TouchEvent) => {
+      const toque = evento.touches[0]
+      const alvo = toque?.target
+      if (!toque || !(alvo instanceof Element) || !alvo.closest('.textLayer')) return
+      inicio = { x: toque.clientX, y: toque.clientY }
+      window.clearTimeout(relogio)
+      relogio = window.setTimeout(escolherPalavra, 320)
+    }
+
+    const aoMover = (evento: TouchEvent) => {
+      const toque = evento.touches[0]
+      if (!toque || !inicio) return
+      if (Math.hypot(toque.clientX - inicio.x, toque.clientY - inicio.y) > 12) cancelar()
+    }
+
+    palco.addEventListener('touchstart', aoTocar, { passive: true })
+    palco.addEventListener('touchmove', aoMover, { passive: true })
+    palco.addEventListener('touchend', cancelar, { passive: true })
+    palco.addEventListener('touchcancel', cancelar, { passive: true })
+    return () => {
+      window.clearTimeout(relogio)
+      palco.removeEventListener('touchstart', aoTocar)
+      palco.removeEventListener('touchmove', aoMover)
+      palco.removeEventListener('touchend', cancelar)
+      palco.removeEventListener('touchcancel', cancelar)
+    }
+  }, [])
+
+  /** O texto que está dentro da região marcada, na ordem de leitura da página. */
+  const textoNaRegiao = (regiao: DOMRect) => {
+    const partes: { topo: number; esquerda: number; texto: string }[] = []
+    for (const camada of layerRefs.current) {
+      for (const span of camada?.querySelectorAll('span') ?? []) {
+        const caixa = span.getBoundingClientRect()
+        if (!caixa.width || !caixa.height) continue
+        const toca = caixa.right > regiao.left && caixa.left < regiao.right
+          && caixa.bottom > regiao.top && caixa.top < regiao.bottom
+        const texto = (span.textContent ?? '').trim()
+        if (toca && texto) partes.push({ topo: caixa.top, esquerda: caixa.left, texto })
+      }
+    }
+    partes.sort((a, b) => a.topo - b.topo || a.esquerda - b.esquerda)
+    return partes.map((parte) => parte.texto).join(' ').replace(/\s+/g, ' ').trim()
+  }
+
+  /** O recorte da região em PNG: o caminho das páginas que não têm texto. */
+  const recorteDaRegiao = (regiao: DOMRect) => {
+    const canvas = canvasRefs.current
+      .filter((item): item is HTMLCanvasElement => Boolean(item))
+      .find((item) => {
+        const caixa = item.getBoundingClientRect()
+        return caixa.right > regiao.left && caixa.left < regiao.right
+          && caixa.bottom > regiao.top && caixa.top < regiao.bottom
+      })
+    if (!canvas) return ''
+    const caixaDoCanvas = canvas.getBoundingClientRect()
+    const escala = canvas.width / caixaDoCanvas.width
+    const recorte = document.createElement('canvas')
+    recorte.width = Math.max(1, Math.round(regiao.width * escala))
+    recorte.height = Math.max(1, Math.round(regiao.height * escala))
+    const contexto = recorte.getContext('2d')
+    if (!contexto) return ''
+    contexto.drawImage(
+      canvas,
+      (regiao.left - caixaDoCanvas.left) * escala,
+      (regiao.top - caixaDoCanvas.top) * escala,
+      recorte.width,
+      recorte.height,
+      0,
+      0,
+      recorte.width,
+      recorte.height,
+    )
+    return recorte.toDataURL('image/png').split(',')[1] ?? ''
+  }
+
+  const inicioDaMarcacao = (evento: ReactPointerEvent) => {
+    const palco = bookStageRef.current
+    if (!palco) return
+    const pagina = (evento.target as Element | null)?.closest('.pdf-page')
+    if (!pagina) return
+    palco.setPointerCapture(evento.pointerId)
+    const base = palco.getBoundingClientRect()
+    const caixaDaPagina = pagina.getBoundingClientRect()
+    // A faixa ocupa a página inteira na horizontal: só a altura é escolhida.
+    origemDaMarcacao.current = {
+      y: evento.clientY - base.top,
+      esquerda: caixaDaPagina.left - base.left,
+      largura: caixaDaPagina.width,
+      base,
+    }
+    setCaixaDaMarcacao({
+      esquerda: caixaDaPagina.left - base.left,
+      topo: evento.clientY - base.top,
+      largura: caixaDaPagina.width,
+      altura: 0,
+    })
+  }
+
+  const duranteAMarcacao = (evento: ReactPointerEvent) => {
+    const origem = origemDaMarcacao.current
+    if (!origem) return
+    const atual = evento.clientY - origem.base.top
+    setCaixaDaMarcacao({
+      esquerda: origem.esquerda,
+      largura: origem.largura,
+      topo: Math.min(origem.y, atual),
+      altura: Math.abs(atual - origem.y),
+    })
+  }
+
+  /** Ao soltar: o texto da região; sem texto na página, o recorte vira pergunta. */
+  const fimDaMarcacao = async (evento: ReactPointerEvent) => {
+    const palco = bookStageRef.current
+    const origem = origemDaMarcacao.current
+    origemDaMarcacao.current = null
+    setMarcando(false)
+    const atual = caixaDaMarcacao
+    setCaixaDaMarcacao(null)
+    if (!palco || !origem || !atual || atual.altura < 8) return
+    const regiao = new DOMRect(
+      origem.base.left + atual.esquerda,
+      origem.base.top + atual.topo,
+      atual.largura,
+      atual.altura,
+    )
+    const texto = textoNaRegiao(regiao)
+    if (texto) {
+      setSelectedText(texto)
+      onSelectionChange?.(texto)
+      return
+    }
+    const imagem = recorteDaRegiao(regiao)
+    if (!imagem) return
+    setStatus('lendo o recorte…')
+    try {
+      const lido = (await readImage(imagem)).replace(/\s+/g, ' ').trim()
+      if (lido) {
+        setSelectedText(lido)
+        onSelectionChange?.(lido)
+      } else {
+        mostrarErro('não encontrei texto neste recorte')
+      }
+    } catch (caught) {
+      mostrarErro(formatError(caught))
+    } finally {
+      setStatus('')
+    }
+    void evento
+  }
 
   const irPara = useCallback((numero: number) => {
     if (!Number.isFinite(numero)) return
@@ -551,8 +784,24 @@ export default function ReaderPage({
                 ))}
               </select>
             </label>
+            <button
+              type="button"
+              className="ghost-button mark-button"
+              onClick={() => {
+                setMarcando((atual) => !atual)
+                setCaixaDaMarcacao(null)
+              }}
+              aria-pressed={marcando}
+            >
+              {marcando ? 'Cancelar' : 'Marcar trecho'}
+            </button>
           </div>
 
+          {paginasComTexto.length > 0 && paginasComTexto.every((tem) => !tem) ? (
+            <p className="page-sem-texto">
+              Esta página não tem texto — é uma imagem. Use <strong>Próxima</strong> para chegar a uma página com texto.
+            </p>
+          ) : null}
           {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
           {status ? <Indicator label={status} /> : null}
 
@@ -570,8 +819,22 @@ export default function ReaderPage({
             /> : null}
             <div
               ref={bookStageRef}
-              className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}`}
+              className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}${marcando ? ' is-marking' : ''}`}
+              onPointerDown={marcando ? inicioDaMarcacao : undefined}
+              onPointerMove={marcando ? duranteAMarcacao : undefined}
+              onPointerUp={marcando ? fimDaMarcacao : undefined}
             >
+              {caixaDaMarcacao ? (
+                <div
+                  className="marcacao-caixa"
+                  style={{
+                    left: caixaDaMarcacao.esquerda,
+                    top: caixaDaMarcacao.topo,
+                    width: caixaDaMarcacao.largura,
+                    height: caixaDaMarcacao.altura,
+                  }}
+                />
+              ) : null}
               {Array.from({ length: paginasVisiveis }, (_, index) => index).map((index) => (
                 <PdfPage
                   key={`${page}-${zoom}-${index}`}

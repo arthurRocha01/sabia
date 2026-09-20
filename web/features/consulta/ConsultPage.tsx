@@ -175,6 +175,13 @@ export default function ConsultPage() {
     setMobilePanel((atual) => (atual === painel ? null : painel))
   }
 
+  const aoSelecionarNoLivro = (valor: string) => {
+    // O trecho entra no campo e nada mais: abrir o painel aqui tirava a página
+    // da tela justo quando o leitor acabara de marcar o trecho nela.
+    setText(valor)
+    setError('')
+  }
+
   return (
     <>
       <Header books={books} loading={loadingBooks} />
@@ -207,7 +214,7 @@ export default function ConsultPage() {
                 embedded
                 bookIdOverride={bookId}
                 externalSelectedText={text}
-                onSelectionChange={setText}
+                onSelectionChange={aoSelecionarNoLivro}
                 findRequest={findRequest}
               />
             ) : (

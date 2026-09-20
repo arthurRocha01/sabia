@@ -35,7 +35,7 @@ def create_app(allowed_origins: tuple[str, ...] = ()) -> FastAPI:
     cliente e o motor estão no mesmo endereço, e abrir a porta para qualquer
     origem é convite que ninguém pediu. Quem precisa de outro domínio declara.
     """
-    from engine.api import routes_books, routes_connect, routes_jobs, routes_profile
+    from engine.api import routes_books, routes_connect, routes_jobs, routes_profile, routes_read
 
     erro = {"model": schemas.ErrorResponse}
     app = FastAPI(
@@ -79,6 +79,6 @@ def create_app(allowed_origins: tuple[str, ...] = ()) -> FastAPI:
         mensagem = f"pedido inválido: {onde}" if onde else "pedido inválido"
         return JSONResponse(status_code=400, content=InvalidInput(mensagem).to_payload())
 
-    for modulo in (routes_books, routes_jobs, routes_connect, routes_profile):
+    for modulo in (routes_books, routes_jobs, routes_connect, routes_profile, routes_read):
         app.include_router(modulo.router)
     return app

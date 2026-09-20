@@ -33,7 +33,11 @@ export default function PdfPage({
         ref={layerRef}
         className="textLayer"
         onMouseUp={onSelect}
-        onTouchEnd={onSelect}
+        onTouchEnd={() => {
+          window.setTimeout(onSelect, 0)
+          window.setTimeout(onSelect, 80)
+          window.setTimeout(onSelect, 180)
+        }}
       />
     </div>
   )

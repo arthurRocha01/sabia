@@ -157,6 +157,65 @@ class GeminiEmbeddings:
         return min(float(achado.group(1)), 60.0)
 
 
+class GeminiVision:
+    """Leitura de um recorte de imagem.
+
+    Serve a uma coisa só: quando a página não tem camada de texto — capa, página
+    escaneada, ilustração — o recorte vira pergunta e o modelo transcreve. Não é
+    interpretação nem busca: é leitura, e volta como texto puro.
+    """
+
+    INSTRUCAO = (
+        "Transcreva apenas o texto que aparece nesta imagem, em português. "
+        "Não descreva a imagem, não comente e não acrescente nada. "
+        "Se não houver texto legível, responda com uma linha vazia."
+    )
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str,
+        attempts: int = 2,
+        client: Any | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self.model = model
+        self.attempts = attempts
+        self._client: Any = client if client is not None else genai.Client(api_key=api_key)
+        self._sleep = sleep
+
+    def read_image(self, imagem: bytes, mime: str = "image/png") -> str:
+        """Devolve o texto que aparece no recorte."""
+        for tentativa in range(self.attempts):
+            try:
+                resposta = self._client.models.generate_content(
+                    model=self.model,
+                    contents=[
+                        genai.types.Part.from_bytes(data=imagem, mime_type=mime),
+                        self.INSTRUCAO,
+                    ],
+                )
+                return (resposta.text or "").strip()
+            except Exception as erro:  # o cliente levanta tipos próprios
+                codigo = self._code(erro)
+                ultima = tentativa + 1 >= self.attempts
+                if codigo in SERVER_ERRORS and not ultima:
+                    self._sleep(2**tentativa)
+                    continue
+                if codigo is None and isinstance(erro, TimeoutError):
+                    raise TimedOut("o provedor de visão não respondeu a tempo") from erro
+                raise ProviderUnavailable(
+                    "não consegui ler o recorte",
+                    detail="página sem texto precisa do provedor de visão de pé",
+                ) from erro
+        raise ProviderUnavailable("não consegui ler o recorte")
+
+    @staticmethod
+    def _code(erro: Exception) -> int | None:
+        return GeminiEmbeddings._code(erro)
+
+
 class DeepSeekInterpretation:
     """Síntese e classificação da relação, num pedido só.
 

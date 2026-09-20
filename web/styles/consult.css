@@ -692,9 +692,9 @@
     grid-template-columns: 1fr;
     width: 100%;
     min-height: 0;
-    max-height: calc(100dvh - 190px);
+    max-height: none;
     align-content: start;
-    overflow-y: auto;
+    overflow: visible;
   }
 
   .consult-book .open-book .pdf-page {
@@ -847,6 +847,35 @@
 }
 
 @media (max-width: 560px) {
+  /* A fileira tem três filhos e nenhum encolhia: com vãos de 24px a soma
+     passava da largura da tela e o botão de seleção era empurrado para fora,
+     ficando cortado. Aqui o título ocupa a linha inteira e os controles
+     dividem a de baixo. */
+  .consult-book .book-toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin-bottom: 8px;
+  }
+
+  .consult-book .book-toolbar > div:first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .consult-book .book-toolbar h2 {
+    margin: 2px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: clamp(1rem, 4.6vw, 1.25rem);
+  }
+
+  .consult-book .book-picker {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
   .consult-book .book-footer {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

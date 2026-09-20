@@ -174,6 +174,19 @@ class ConnectResponse(BaseModel):
     citations: list[Citation] = Field(default_factory=list, description="Fontes do card.")
 
 
+class ReadImageRequest(BaseModel):
+    """Um recorte de página, em base64, para o provedor de visão transcrever."""
+
+    image: str
+    mime: str = "image/png"
+
+
+class ReadImageResponse(BaseModel):
+    """O texto lido do recorte."""
+
+    text: str
+
+
 class Profile(BaseModel):
     """Perfil do leitor: a linha corrente, o consumo do dia e o tamanho do card.
 

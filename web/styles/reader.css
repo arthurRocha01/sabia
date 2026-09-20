@@ -68,6 +68,22 @@
   background: #fff;
 }
 
+/* Aviso de página sem texto: capa e ilustração não têm trecho para selecionar. */
+.page-sem-texto {
+  max-width: 1080px;
+  margin: 0 auto 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.page-sem-texto strong {
+  color: var(--ink);
+}
+
 .textLayer {
   --min-font-size: 1;
   --min-font-size-inv: calc(1 / var(--min-font-size));
@@ -100,9 +116,13 @@
 .textLayer br {
   position: absolute;
   white-space: pre;
-  color: transparent;
+  color: rgb(0 0 0 / 0.01);
   cursor: text;
   transform-origin: 0% 0%;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-text-fill-color: rgb(0 0 0 / 0.01);
+  pointer-events: auto;
 }
 
 .textLayer span {
@@ -140,6 +160,8 @@
 .textLayer {
   user-select: text;
   -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: auto;
 }
 
 /* A seleção usa a cor do produto, não o azul do navegador. */
@@ -324,9 +346,11 @@
 
   @media (max-width: 800px) {
     .pdf-stage {
-      max-height: calc(100dvh - 190px);
+      max-height: none;
       padding: 8px;
-      overscroll-behavior: contain;
+      overscroll-behavior: auto;
+      touch-action: auto;
+      overflow: visible;
     }
 
     .pdf-stage.open-book {
@@ -488,4 +512,23 @@
   .consult-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* Marcar trecho: a região desenhada sobre a página, e o palco como referência. */
+.pdf-stage {
+  position: relative;
+}
+
+.pdf-stage.is-marking {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.marcacao-caixa {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  pointer-events: none;
 }

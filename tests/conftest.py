@@ -276,6 +276,7 @@ def cliente(settings, banco, arquivos, interpretador) -> TestClient:
     app.dependency_overrides[deps.token_do_leitor] = lambda: TOKEN
     app.dependency_overrides[deps.embeddings] = EmbedderFalso
     app.dependency_overrides[deps.interpretador] = lambda: interpretador
+    app.dependency_overrides[deps.leitor_de_imagem] = lambda: LeitorDeImagemFalso()
     return TestClient(app)
 
 
@@ -319,3 +320,10 @@ def pdf_sem_texto(tmp_path):
 
 def novo_id() -> str:
     return str(uuid.uuid4())
+
+
+class LeitorDeImagemFalso:
+    """Transcreve qualquer recorte como um texto fixo, sem rede."""
+
+    def read_image(self, imagem: bytes, mime: str = "image/png") -> str:
+        return f"recorte de {len(imagem)} bytes, {mime}"

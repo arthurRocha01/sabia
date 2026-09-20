@@ -80,6 +80,7 @@ class Settings:
     embedding_model: str
     llm_provider: str
     llm_model: str
+    vision_model: str
     llm_timeout: int
     quota_daily_texts: int
     min_score_floor: float
@@ -152,6 +153,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         llm_provider=provider,
         llm_model=_text_value(env, "LLM_MODEL", "deepseek-flash"),
         llm_timeout=_int_value(env, "LLM_TIMEOUT", 60),
+        vision_model=_text_value(env, "VISION_MODEL", "gemini-3.6-flash"),
         quota_daily_texts=_int_value(env, "QUOTA_DAILY_TEXTS", 1000),
         min_score_floor=min_score_floor,
         embedding_batch_chars=_int_value(env, "EMBEDDING_BATCH_CHARS", 16000),

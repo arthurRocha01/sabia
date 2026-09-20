@@ -22,7 +22,7 @@ from engine.core.config import Settings, load_settings
 from engine.core.errors import Unauthorized
 from engine.infra import db
 from engine.infra.auth import BEARER, Reader, TokenVerifier
-from engine.infra.providers import DeepSeekInterpretation, GeminiEmbeddings
+from engine.infra.providers import DeepSeekInterpretation, GeminiEmbeddings, GeminiVision
 
 
 @lru_cache
@@ -54,6 +54,12 @@ def embeddings(settings: ConfigDep) -> GeminiEmbeddings:
         batch_delay=settings.embedding_batch_delay,
         texts_per_minute=settings.embedding_texts_per_minute,
     )
+
+
+@lru_cache
+def leitor_de_imagem(settings: ConfigDep) -> GeminiVision:
+    """Provedor de visão: transcreve o recorte de uma página sem texto."""
+    return GeminiVision(api_key=settings.google_api_key, model=settings.vision_model)
 
 
 @lru_cache
@@ -112,4 +118,5 @@ def conexao_do_leitor(leitor: ReaderDep, settings: ConfigDep) -> Iterator[psycop
 ConexaoDep = Annotated[psycopg.Connection, Depends(conexao_do_leitor)]
 EmbeddingsDep = Annotated[GeminiEmbeddings, Depends(embeddings)]
 InterpretadorDep = Annotated[DeepSeekInterpretation, Depends(interpretador)]
+VisionDep = Annotated[GeminiVision, Depends(leitor_de_imagem)]
 AutorizacaoDep = Annotated[str | None, Header()]
