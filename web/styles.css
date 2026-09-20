@@ -264,6 +264,84 @@ textarea {
   text-transform: uppercase;
 }
 
+.field-label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.help-tip-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--ink-faint);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-muted);
+  font-family: var(--font-data);
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.help-tip-button:hover,
+.help-tip-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.help-tip-content {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 20;
+  width: 230px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.45;
+  text-transform: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.help-tip-content::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.help-tip:hover .help-tip-content,
+.help-tip:focus-within .help-tip-content {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
 .primary-button,
 .secondary-button,
 .ghost-button {
@@ -453,6 +531,12 @@ textarea {
 
 .metric-row strong {
   font-family: var(--font-data);
+}
+
+.metric-label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .divider {
@@ -1609,6 +1693,7 @@ textarea {
 
 /* Tamanho da interpretação: escolha do leitor, valor corrente no perfil. */
 .card-length {
+  margin-top: 16px;
   gap: 8px;
 }
 

@@ -21,7 +21,10 @@ router = APIRouter(prefix="/api", tags=["perfil"])
 
 def _ficha(cursor, leitor, settings) -> schemas.Profile:
     perfil = db.get_profile(cursor) or {}
+    atividade = db.activity_today(cursor, leitor.id)
     return schemas.Profile(
+        queries_today=atividade["queries_today"],
+        connections_today=atividade["connections_today"],
         current_line=perfil.get("current_line"),
         card_length=perfil.get("card_length") or schemas.CardLength.default,
         interpretation_profile=perfil.get("interpretation_profile") or "",

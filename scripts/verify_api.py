@@ -250,6 +250,13 @@ def main() -> int:
             bool(corpo.get("card")),
             str(corpo.get("card"))[:70],
         )
+
+        atividade = cliente.get("/api/profile").json()
+        confere(
+            "a atividade do dia conta a consulta",
+            atividade["queries_today"] >= 1 and atividade["connections_today"] >= len(hits),
+            f"{atividade['queries_today']} consultas, {atividade['connections_today']} conexoes",
+        )
         confere(
             "a classificação veio de lista fechada ou vazia",
             corpo.get("relation") in RELATIONS + (None,),

@@ -251,7 +251,19 @@ def test_profile_reports_the_day_usage(cliente, banco):
         "interpretation_profile": "",
         "texts_today": 0,
         "daily_limit": 1000,
+        "queries_today": 0,
+        "connections_today": 0,
     }
+
+
+def test_profile_reports_the_day_activity(cliente, banco):
+    """Consultas e conexões do dia saem do registro de calibração."""
+    banco.consultas_hoje = 4
+    banco.conexoes_hoje = 11
+    corpo = cliente.get("/api/profile").json()
+    assert corpo["queries_today"] == 4
+    assert corpo["connections_today"] == 11
+    assert banco.dados("activity_today")["owner_id"] == LEITOR
 
 
 def test_job_unknown_returns_not_found(cliente, banco):

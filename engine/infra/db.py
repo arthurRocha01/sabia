@@ -340,6 +340,25 @@ def get_job(cur: psycopg.Cursor, job_id: str) -> dict | None:
     return dict(zip(colunas, linha, strict=True))
 
 
+def activity_today(cur: psycopg.Cursor, owner_id: str) -> dict:
+    """A atividade do dia: consultas feitas e conexões que voltaram.
+
+    Sai do próprio registro de calibração (`queries`), que já guarda cada
+    consulta com os trechos devolvidos — não há contador separado para manter em
+    sincronia. O dia é o mesmo do consumo: o dia UTC.
+    """
+    cur.execute(
+        """
+        select count(*), coalesce(sum(jsonb_array_length(hits)), 0)
+        from public.queries
+        where owner_id = %s and created_at >= date_trunc('day', now() at time zone 'utc')
+        """,
+        (owner_id,),
+    )
+    consultas, conexoes = _only(cur, "a atividade do dia")
+    return {"queries_today": int(consultas), "connections_today": int(conexoes)}
+
+
 def texts_embedded_today(cur: psycopg.Cursor, owner_id: str) -> int:
     """Consumo do dia: a soma do que as tarefas já embedaram.
 

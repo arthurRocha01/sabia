@@ -189,6 +189,8 @@ class Profile(BaseModel):
     )
     texts_today: int = 0
     daily_limit: int = 0
+    queries_today: int = Field(default=0, description="Consultas feitas hoje.")
+    connections_today: int = Field(default=0, description="Trechos devolvidos hoje.")
 
 
 class ProfileUpdate(BaseModel):

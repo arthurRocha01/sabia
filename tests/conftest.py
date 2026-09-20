@@ -74,6 +74,9 @@ class BancoFalso:
         self.livros: list[dict] = []
         self.livro: dict | None = None
         self.tarefa: dict | None = None
+        # Atividade do dia: o dublê devolve o que o teste mandar.
+        self.consultas_hoje = 0
+        self.conexoes_hoje = 0
         self.perfil: dict | None = {
             "id": LEITOR,
             "current_line": "estrategia",
@@ -97,6 +100,10 @@ class BancoFalso:
     def set_current_line(self, _cursor, line):
         self._anota("set_current_line", line=line)
         self.perfil = {**(self.perfil or {}), "id": LEITOR, "current_line": line}
+
+    def activity_today(self, _cursor, owner_id):
+        self._anota("activity_today", owner_id=owner_id)
+        return {"queries_today": self.consultas_hoje, "connections_today": self.conexoes_hoje}
 
     def set_interpretation_profile(self, _cursor, texto):
         self._anota("set_interpretation_profile", texto=texto)
@@ -218,7 +225,7 @@ def banco(monkeypatch) -> BancoFalso:
         "delete_book", "find_book", "create_book", "create_job", "get_job",
         "start_job", "advance_job", "finish_book", "fail_job", "fail_book",
         "texts_embedded_today", "save_query", "search_chunks",
-        "set_card_length", "set_interpretation_profile",
+        "set_card_length", "set_interpretation_profile", "activity_today",
     ):
         monkeypatch.setattr(db, nome, getattr(falso, nome))
     return falso
