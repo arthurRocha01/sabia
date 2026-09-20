@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, NavLink, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 import type { Book, ConnectRequest, ConnectResponse, ErrorResponse, InterpretationResponse, JobProgress, Profile } from './types'
-import { connect, deleteBook, formatError, getJob, getProfile, interpret, listBooks, updateBook, updateProfile, uploadBook } from './api'
+import { connect, deleteBook, formatError, getJob, getProfile, listBooks, updateBook, updateProfile, uploadBook } from './api'
 import ReaderPage from './ReaderPage'
 import ToolHeader from './ToolHeader'
 import LoadingIndicator from './LoadingIndicator'
@@ -443,10 +443,10 @@ function ConsultPage() {
     setLoadingConnections(true)
 
     try {
-      const [connectResponse, interpretResponse] = await Promise.all([connect(payload), interpret(payload)])
+      const resposta = await connect(payload)
       if (requestRef.current !== requestKey) return
-      setHits(connectResponse.hits)
-      setCard(interpretResponse)
+      setHits(resposta.hits)
+      setCard(resposta)
       setError('')
     } catch (caught) {
       if (requestRef.current === requestKey) setError(formatError(caught))

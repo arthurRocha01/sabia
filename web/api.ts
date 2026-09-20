@@ -1,4 +1,4 @@
-import type { Book, BooksResponse, ConnectRequest, ConnectResponse, ErrorResponse, InterpretationResponse, Profile } from './types'
+import type { Book, BooksResponse, ConnectRequest, ConnectResponse, ErrorResponse, Profile } from './types'
 
 const API_PREFIX = '/api'
 
@@ -126,9 +126,3 @@ export async function connect(payload: ConnectRequest): Promise<ConnectResponse>
   })
 }
 
-export async function interpret(payload: ConnectRequest): Promise<InterpretationResponse> {
-  return apiFetch<InterpretationResponse>('/interpret', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-}

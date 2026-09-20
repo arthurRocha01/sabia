@@ -207,7 +207,13 @@ def main() -> int:
         }
         conexoes = cliente.post("/api/connect", json=pedido)
         confere("a busca responde", conexoes.status_code == 200, str(conexoes.status_code))
-        hits = conexoes.json().get("hits", [])
+        corpo = conexoes.json()
+        hits = corpo.get("hits", [])
+        confere(
+            "o limiar aplicado é o piso da instalação",
+            corpo.get("min_score") == 0.65,
+            f"min_score={corpo.get('min_score')}",
+        )
         confere("a busca encontrou trechos no outro livro", bool(hits), f"{len(hits)} trechos")
         confere(
             "o trecho devolvido veio da outra obra",
@@ -216,10 +222,11 @@ def main() -> int:
         if hits:
             print(f"    melhor score: {hits[0]['score']:.3f} — {hits[0]['text'][:60]}…")
 
-        card = cliente.post("/api/interpret", json=pedido)
-        confere("a interpretação responde", card.status_code == 200, str(card.status_code))
-        corpo = card.json()
-        confere("o card tem síntese", bool(corpo.get("card")), str(corpo.get("card"))[:70])
+        confere(
+            "o card veio na mesma resposta",
+            bool(corpo.get("card")),
+            str(corpo.get("card"))[:70],
+        )
         confere(
             "a classificação veio de lista fechada ou vazia",
             corpo.get("relation") in RELATIONS + (None,),
@@ -253,6 +260,15 @@ def main() -> int:
         traceback.print_exc()
     finally:
         print("\n=== limpeza ===")
+        # Apagar a conta não apaga o arquivo no Storage (defeito conhecido), e um
+        # livro que ficou para trás deixa pasta órfã no bucket. Os livros saem
+        # pela API primeiro, que é quem remove o arquivo junto.
+        try:
+            for sessao in (cliente, outro):
+                for livro in sessao.get("/api/books").json().get("books", []):
+                    sessao.delete(f"/api/books/{livro['id']}")
+        except NameError:
+            pass
         for conta in contas:
             apaga_conta(url, segredo, conta)
         print(f"  contas removidas: {len(contas)} (as tabelas caem em cascata com o dono)")

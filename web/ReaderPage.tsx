@@ -14,7 +14,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
-import { connect, fetchBookFile, formatError, interpret, listBooks } from './api'
+import { connect, fetchBookFile, formatError, listBooks } from './api'
 import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from './types'
 import ToolHeader from './ToolHeader'
 import LoadingIndicator from './LoadingIndicator'
@@ -251,10 +251,10 @@ export default function ReaderPage({
         k: 3,
         min_score: 0,
       }
-      const [conexoes, interpretacao] = await Promise.all([connect(payload), interpret(payload)])
+      const resposta = await connect(payload)
       if (marca !== pedidoRef.current) return
-      setHits(conexoes.hits)
-      setCard(interpretacao)
+      setHits(resposta.hits)
+      setCard(resposta)
       setError('')
     } catch (caught) {
       if (marca === pedidoRef.current) setError(formatError(caught))

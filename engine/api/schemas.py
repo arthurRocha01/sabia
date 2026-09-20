@@ -138,12 +138,6 @@ class ConnectRequest(BaseModel):
     )
 
 
-class ConnectResponse(BaseModel):
-    hits: list[Hit]
-    word_count: int = Field(description="Palavras do texto consultado, depois do teto.")
-    truncated: bool = Field(description="Se o texto consultado foi cortado no teto de palavras.")
-
-
 class Citation(BaseModel):
     """Fonte de uma interpretação. Montada pelo motor, nunca pelo modelo."""
 
@@ -154,16 +148,25 @@ class Citation(BaseModel):
     page_label: str | None = None
 
 
-class InterpretationResponse(BaseModel):
-    """O card: síntese, classificação e fontes.
+class ConnectResponse(BaseModel):
+    """Os trechos e a interpretação, numa resposta só.
 
-    `relation` vazia significa que a classificação não veio; o card aparece
-    assim mesmo, sem selo. É o plano B do contrato, não um erro.
+    A evidência nunca depende do modelo: quando a interpretação não volta, os
+    trechos vêm completos e `card` fica vazio. `relation` vazia também não é
+    erro — é o card sem selo, que é o plano B do contrato.
+
+    `min_score` é o limiar **efetivamente usado** — o maior entre o piso da
+    instalação e o que o leitor pediu —, para a tela não oferecer um ajuste que
+    o motor ignoraria em silêncio.
     """
 
-    card: str
-    relation: Relation | None = None
-    citations: list[Citation]
+    hits: list[Hit]
+    word_count: int = Field(description="Palavras do texto consultado, depois do teto.")
+    truncated: bool = Field(description="Se o texto consultado foi cortado no teto.")
+    min_score: float = Field(description="Limiar efetivamente aplicado na busca.")
+    card: str | None = Field(default=None, description="Síntese; vazio se não voltou.")
+    relation: Relation | None = Field(default=None, description="Classificação, quando veio.")
+    citations: list[Citation] = Field(default_factory=list, description="Fontes do card.")
 
 
 class Profile(BaseModel):

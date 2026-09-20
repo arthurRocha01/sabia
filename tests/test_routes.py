@@ -271,7 +271,13 @@ def test_connect_returns_hits_and_records_the_query(cliente, banco):
     resposta = cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
     assert resposta.status_code == 200
     corpo = resposta.json()
-    assert set(corpo) == {"hits", "word_count", "truncated"}
+    assert set(corpo) == {
+        "hits", "word_count", "truncated", "min_score", "card", "relation", "citations",
+    }
+    assert corpo["relation"] == "complement"
+    assert corpo["card"]
+    # Sem MIN_SCORE_FLOOR no ambiente, vale o padrão da instalação.
+    assert corpo["min_score"] == 0.65
     assert set(corpo["hits"][0]) == {
         "book_id", "title", "author", "page_index", "page_label", "text", "score",
     }
@@ -313,9 +319,10 @@ def test_connect_passes_the_excluded_book(cliente, banco):
     assert banco.dados("search_chunks")["scope"] == "others"
 
 
-def test_interpret_returns_card_relation_and_citations(cliente, banco, interpretador):
+def test_interpretation_comes_in_the_same_response(cliente, banco, interpretador):
+    """O card e a evidência num pedido só: o cliente não junta dois estados."""
     banco.hits = [_hit()]
-    resposta = cliente.post("/api/interpret", json={"text": "conhecer o inimigo"})
+    resposta = cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
     assert resposta.status_code == 200
     corpo = resposta.json()
     assert corpo["relation"] == "complement"
@@ -326,19 +333,49 @@ def test_interpret_returns_card_relation_and_citations(cliente, banco, interpret
     assert interpretador.pedidos, "o modelo precisa ter sido chamado"
 
 
-def test_interpret_without_hits_does_not_call_the_model(cliente, banco, interpretador):
+def test_without_hits_the_model_is_not_called(cliente, banco, interpretador):
+    """Sem trecho acima do limiar, o card é a frase-guarda e nada é chamado."""
     banco.hits = []
-    resposta = cliente.post("/api/interpret", json={"text": "conhecer o inimigo"})
+    resposta = cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
     assert resposta.status_code == 200
     assert resposta.json()["relation"] is None
     assert resposta.json()["citations"] == []
+    assert resposta.json()["card"], "a frase-guarda é do motor, não do modelo"
     assert not interpretador.pedidos
 
 
-def test_interpret_falls_back_when_answer_is_not_json(cliente, banco, interpretador):
+def test_the_floor_holds_even_when_the_reader_asks_below(cliente, banco):
+    """O piso é da instalação: o pedido só sobe, e o valor usado volta na resposta."""
+    banco.hits = []
+    resposta = cliente.post("/api/connect", json={"text": "conexoes", "min_score": 0.1})
+    assert resposta.status_code == 200
+    assert banco.dados("search_chunks")["min_score"] == 0.65
+    assert resposta.json()["min_score"] == 0.65
+
+
+def test_model_failure_does_not_take_the_evidence(cliente, banco, interpretador, monkeypatch):
+    """Card que não volta não pode custar os trechos: a busca já deu certo."""
+    banco.hits = [_hit()]
+
+    def explodir(prompt: str) -> str:
+        from engine.core.errors import TimedOut
+
+        raise TimedOut("o modelo não respondeu a tempo")
+
+    monkeypatch.setattr(interpretador, "interpret", explodir)
+    resposta = cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo["hits"]) == 1
+    assert corpo["card"] is None
+    assert corpo["relation"] is None
+    assert corpo["citations"] == []
+
+
+def test_answer_out_of_json_falls_back_to_the_raw_text(cliente, banco, interpretador):
     banco.hits = [_hit()]
     interpretador.resposta = "Desculpe, não consegui responder em JSON."
-    resposta = cliente.post("/api/interpret", json={"text": "conhecer o inimigo"})
+    resposta = cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
     assert resposta.status_code == 200
     assert resposta.json()["relation"] is None
     assert "Desculpe" in resposta.json()["card"]
@@ -372,11 +409,11 @@ def test_openapi_pins_the_contract_field_names(cliente):
     assert set(componentes["Hit"]["properties"]) == {
         "book_id", "title", "author", "page_index", "page_label", "text", "score",
     }
-    assert set(componentes["InterpretationResponse"]["properties"]) == {
-        "card", "relation", "citations",
+    assert set(componentes["ConnectResponse"]["properties"]) == {
+        "hits", "word_count", "truncated", "min_score", "card", "relation", "citations",
     }
     assert set(componentes["ErrorResponse"]["properties"]) == {"code", "message", "detail"}
     assert set(esquema["paths"]) == {
         "/api/books", "/api/books/{book_id}", "/api/books/{book_id}/file",
-        "/api/jobs/{job_id}", "/api/connect", "/api/interpret", "/api/profile",
+        "/api/jobs/{job_id}", "/api/connect", "/api/profile",
     }

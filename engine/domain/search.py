@@ -57,6 +57,7 @@ class SearchResult:
     hits: tuple[FoundChunk, ...]
     word_count: int
     truncated: bool
+    min_score: float
 
 
 def limit_words(text: str, limit: int = MAX_QUERY_WORDS) -> tuple[str, bool]:
@@ -74,6 +75,7 @@ def find_connections(
     book_id: str | None,
     k: int,
     min_score: float,
+    floor: float = 0.0,
     embedder: QueryEmbedder,
     store: SearchStore,
 ) -> SearchResult:
@@ -92,6 +94,11 @@ def find_connections(
     if not 1 <= k <= MAX_K:
         raise InvalidInput(f"a quantidade de conexões precisa ficar entre 1 e {MAX_K}")
 
+    # O piso é da instalação e o pedido do leitor só sobe: pedir abaixo dele é
+    # lido como "use o piso", e nunca como erro — o valor usado volta na
+    # resposta, para a tela não oferecer um ajuste que o motor ignoraria.
+    limiar = max(min_score, floor)
+
     consulta, truncado = limit_words(text)
     vetor = embedder.embed_query(consulta)
     linhas = store.search_chunks(
@@ -99,7 +106,7 @@ def find_connections(
         scope=scope,
         book_id=book_id,
         k=k,
-        min_score=min_score,
+        min_score=limiar,
     )
     hits = tuple(
         FoundChunk(
@@ -113,7 +120,9 @@ def find_connections(
         )
         for linha in linhas
     )
-    return SearchResult(hits=hits, word_count=len(consulta.split()), truncated=truncado)
+    return SearchResult(
+        hits=hits, word_count=len(consulta.split()), truncated=truncado, min_score=limiar
+    )
 
 
 def _halfvec(vector: Sequence[float]) -> str:

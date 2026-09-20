@@ -76,6 +76,7 @@ class Settings:
     llm_model: str
     llm_timeout: int
     quota_daily_texts: int
+    min_score_floor: float
     embedding_batch_chars: int
     embedding_batch_delay: int
     embedding_texts_per_minute: int
@@ -92,6 +93,16 @@ class Settings:
     def provider_key(self) -> str:
         """A chave exigida pelo provedor de interpretação configurado."""
         return self.deepseek_api_key if self.llm_provider == "deepseek" else self.google_api_key
+
+
+def _float_value(env: Mapping[str, str], name: str, default: float) -> float:
+    bruto = _text_value(env, name)
+    if not bruto:
+        return default
+    try:
+        return float(bruto.replace(",", "."))
+    except ValueError as erro:
+        raise ConfigError(f"{name} precisa ser um número: {bruto!r}") from erro
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
@@ -118,6 +129,12 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     database_url = _text_value(env, "DATABASE_URL")
     _validate_database_url(database_url)
 
+    # O piso de similaridade é da instalação, não do leitor: abaixo dele nada é
+    # considerado conexão, e o pedido do cliente só pode subir a partir daqui.
+    min_score_floor = _float_value(env, "MIN_SCORE_FLOOR", 0.65)
+    if not 0.0 <= min_score_floor <= 1.0:
+        raise ConfigError(f"MIN_SCORE_FLOOR precisa ficar entre 0 e 1: {min_score_floor}")
+
     return Settings(
         google_api_key=_text_value(env, "GOOGLE_API_KEY"),
         deepseek_api_key=_text_value(env, "DEEPSEEK_API_KEY"),
@@ -126,6 +143,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         llm_model=_text_value(env, "LLM_MODEL", "deepseek-flash"),
         llm_timeout=_int_value(env, "LLM_TIMEOUT", 60),
         quota_daily_texts=_int_value(env, "QUOTA_DAILY_TEXTS", 1000),
+        min_score_floor=min_score_floor,
         embedding_batch_chars=_int_value(env, "EMBEDDING_BATCH_CHARS", 16000),
         embedding_batch_delay=_int_value(env, "EMBEDDING_BATCH_DELAY", 10),
         embedding_texts_per_minute=_int_value(env, "EMBEDDING_TEXTS_PER_MINUTE", 100),

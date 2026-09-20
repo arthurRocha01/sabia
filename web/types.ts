@@ -51,6 +51,12 @@ export interface ConnectResponse {
   hits: Hit[]
   word_count: number
   truncated: boolean
+  /** Limiar efetivamente aplicado: o maior entre o piso do motor e o que foi pedido. */
+  min_score: number
+  /** Síntese; `null` quando a interpretação não voltou — a evidência vem mesmo assim. */
+  card: string | null
+  relation: Relation | null
+  citations: Citation[]
 }
 
 export interface Citation {
@@ -61,11 +67,8 @@ export interface Citation {
   page_label: string | null
 }
 
-export interface InterpretationResponse {
-  card: string
-  relation: Relation | null
-  citations: Citation[]
-}
+/** O card: o que a interpretação acrescenta à evidência, na mesma resposta. */
+export type InterpretationResponse = Pick<ConnectResponse, 'card' | 'relation' | 'citations'>
 
 export interface Profile {
   current_line: string | null
