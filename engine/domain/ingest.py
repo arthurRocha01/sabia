@@ -8,7 +8,7 @@ Este módulo não fala com a rede nem com o banco: tudo aqui é função pura so
 as páginas lidas. O que consome cota e grava acontece depois, com as peças que
 vivem em `infra/`.
 
-As regras estão em `Sabiá - Sistema.md`, seções 3.6 e 3.7. Os números da
+As regras estão em `Sabiá - Sistema.md`, seções de preparo do texto e de ingestão. Os números da
 classificação foram medidos no acervo e são pontos de partida a re-medir.
 """
 

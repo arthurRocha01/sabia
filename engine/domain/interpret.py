@@ -10,7 +10,7 @@ O modelo nunca produz número de página: ele diz apenas quais trechos usou, por
 pior tipo — e busca por palavra dentro de uma frase acha o oposto ("não há
 contradição" contém "contradição").
 
-Ver `Sabiá - Sistema.md`, seção 3.4.
+Ver `Sabiá - Sistema.md`, seções da política do card e da interface.
 """
 
 from __future__ import annotations

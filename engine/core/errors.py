@@ -4,7 +4,7 @@ Responsabilidade: definir os erros que o domínio levanta e a correspondência
 entre cada um e um código de erro do contrato. A conversão em resposta HTTP é
 feita na camada de entrada, a partir do que está definido aqui.
 
-Os códigos são os do contrato (ver `Sabiá - Sistema.md`, seção 4) e não mudam
+Os códigos são os do contrato (ver `Sabiá - Arquitetura.md`, seção do contrato) e não mudam
 sem que o documento mude. As mensagens são escritas em português porque
 chegam ao leitor; os códigos são identificadores estáveis, em inglês.
 """

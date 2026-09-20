@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 # Dimensões do vetor de `gemini-embedding-001`. O banco guarda `halfvec` com
-# esta dimensão (ver `Sabiá - Esquema do banco.md`).
+# esta dimensão (ver `Sabiá - Arquitetura.md`, seção do modelo de dados).
 EMBEDDING_DIMENSIONS = 3072
 
 # Provedores de interpretação aceitos, e a chave que cada um exige.

@@ -5,7 +5,7 @@ o **token do leitor**, e não com a chave administrativa: as políticas do bucke
 autorizam pelo dono (o primeiro segmento do caminho é o identificador dele), e
 usar a chave administrativa apagaria justamente essa proteção.
 
-Ver `Sabiá - Esquema do banco.md`, seção 2.
+Ver `Sabiá - Arquitetura.md`, seção do modelo de dados.
 """
 
 from __future__ import annotations

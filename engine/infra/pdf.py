@@ -9,7 +9,7 @@ editorial é do domínio; este módulo apenas entrega o que mediu, sem interpret
 A separação existe para que a regra de classificação possa ser testada sem
 arquivo e ajustada sem tocar na leitura.
 
-Ver `Sabiá - Sistema.md`, seções 3.5 e 3.6.
+Ver `Sabiá - Sistema.md`, seções de preparo do texto.
 """
 
 from __future__ import annotations

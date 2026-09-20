@@ -5,12 +5,12 @@ negócio mora aqui — o que é um trecho, quando gravar e o que fazer com o err
 é decisão do domínio.
 
 A identidade do usuário na conexão (RLS) continua sendo ponto deferido
-(`Sabiá - Infraestrutura.md`, seção 2). Até ela existir, a conexão usa a
+(`Sabiá - Infra.md`, seção de dados). Até ela existir, a conexão usa a
 credencial do pooler e o dono é **parâmetro de toda instrução**: quando a
 identidade entrar, ela entra na preparação da conexão e nenhuma função daqui
 muda.
 
-Ver `Sabiá - Esquema do banco.md` para tabelas, campos e políticas.
+Ver `Sabiá - Arquitetura.md`, seção do modelo de dados, para tabelas, campos e políticas.
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
 
 Revelador de conexões entre livros: o leitor seleciona um trecho e vê o que outros autores dizem sobre a mesma ideia, interpretado, com as fontes.
 
-Este repositório contém o **cliente** (aplicação web) e o **motor** (serviço que guarda o acervo, gera os vetores e chama os modelos). A documentação do projeto fica no vault Obsidian, em `2 - Projects/Sabiá` — o comportamento e o contrato em `Sabiá - Sistema.md` são o ponto de entrada.
+Este repositório contém o **cliente** (aplicação web) e o **motor** (serviço que guarda o acervo, gera os vetores e chama os modelos). A documentação do projeto fica no vault Obsidian, em `2 - Projects/Sabiá` — o comportamento em `Sabiá - Sistema.md`, a arquitetura e o contrato em `Sabiá - Arquitetura.md` e a plataforma em `Sabiá - Infra.md` são o ponto de entrada.
 
 ## Estrutura
 
