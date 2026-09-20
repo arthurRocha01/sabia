@@ -27,6 +27,7 @@ def _ficha(cursor, leitor, settings) -> schemas.Profile:
         connections_today=atividade["connections_today"],
         current_line=perfil.get("current_line"),
         card_length=perfil.get("card_length") or schemas.CardLength.default,
+        min_score_floor=settings.min_score_floor,
         interpretation_profile=perfil.get("interpretation_profile") or "",
         texts_today=db.texts_embedded_today(cursor, leitor.id),
         daily_limit=settings.quota_daily_texts,

@@ -1783,3 +1783,29 @@ textarea {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* Precisão da consulta: o piso da instalação é o começo, não o fim. */
+.rail-precision span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rail-precision .field-label-with-help > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.rail-precision strong {
+  color: var(--accent);
+  font-family: var(--font-data);
+  font-size: 0.82rem;
+}
+
+.rail-precision input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}

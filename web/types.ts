@@ -79,6 +79,8 @@ export interface Profile {
   interpretation_profile: string
   texts_today: number
   daily_limit: number
+  /** Piso de similaridade da instalação: a precisão só sobe a partir dele. */
+  min_score_floor: number
   /** Atividade do dia, do registro de calibração do motor. */
   queries_today: number
   connections_today: number

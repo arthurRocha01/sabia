@@ -474,11 +474,13 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
 function ConsultPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [books, setBooks] = useState<Book[]>([])
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [bookId, setBookId] = useState(() => searchParams.get('book') ?? '')
   const [text, setText] = useState('')
   const [scope, setScope] = useState<'others' | 'same'>('others')
   const [k, setK] = useState(3)
-  const [minScore, setMinScore] = useState(0)
+  // A precisão começa no piso da instalação, que vem no perfil: o leitor só sobe.
+  const [minScore, setMinScore] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [hits, setHits] = useState<ConnectResponse['hits']>([])
   const [card, setCard] = useState<InterpretationResponse | null>(null)
@@ -494,6 +496,15 @@ function ConsultPage() {
       setCard(null)
     }
   }, [bookId, requestedBookId])
+
+  useEffect(() => {
+    void getProfile()
+      .then((atual) => {
+        setProfile(atual)
+        setMinScore((escolhido) => escolhido ?? atual.min_score_floor)
+      })
+      .catch(() => setMinScore((escolhido) => escolhido ?? 0))
+  }, [])
 
   useEffect(() => {
     setLoadingBooks(true)
@@ -524,7 +535,7 @@ function ConsultPage() {
       scope,
       book_id: bookId || undefined,
       k,
-      min_score: minScore,
+      ...(minScore === null ? {} : { min_score: minScore }),
     }
     const requestKey = `${query}|${scope}|${bookId}|${k}|${minScore}`
     requestRef.current = requestKey
@@ -535,6 +546,8 @@ function ConsultPage() {
       if (requestRef.current !== requestKey) return
       setHits(resposta.hits)
       setCard(resposta)
+      // O valor efetivo volta do motor: subir nunca fica só na tela.
+      setMinScore(resposta.min_score)
       setError('')
     } catch (caught) {
       if (requestRef.current === requestKey) setError(formatError(caught))
@@ -579,6 +592,24 @@ function ConsultPage() {
                   <input type="number" min={1} max={10} value={k} onChange={(event) => setK(Math.min(10, Math.max(1, Number(event.target.value) || 1)))} />
                 </label>
               </div>
+
+              <label className="rail-field rail-precision">
+                <span className="field-label-with-help">
+                  <span>
+                    Precisão mínima
+                    <HelpTip>As conexões abaixo deste valor não são retornadas. O piso da instalação é o menor valor permitido.</HelpTip>
+                  </span>
+                  <strong>{minScore === null ? '—' : minScore.toFixed(2)}</strong>
+                </span>
+                <input
+                  type="range"
+                  min={profile?.min_score_floor ?? 0}
+                  max={0.95}
+                  step={0.01}
+                  value={minScore ?? 0}
+                  onChange={(event) => setMinScore(Number(event.target.value))}
+                />
+              </label>
 
               <button type="button" className="primary-button rail-search-button" onClick={handleSubmit} disabled={loadingConnections || loadingBooks}>
                 {loadingConnections ? 'Buscando conexões…' : 'Buscar conexões'}

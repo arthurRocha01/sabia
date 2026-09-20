@@ -249,7 +249,7 @@ export default function ReaderPage({
         scope: 'others',
         book_id: bookId,
         k: 3,
-        min_score: 0,
+        // Sem precisão aqui: vale o piso da instalação, aplicado pelo motor.
       }
       const resposta = await connect(payload)
       if (marca !== pedidoRef.current) return

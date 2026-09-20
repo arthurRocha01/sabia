@@ -189,6 +189,10 @@ class Profile(BaseModel):
     )
     texts_today: int = 0
     daily_limit: int = 0
+    min_score_floor: float = Field(
+        default=0.0,
+        description="Piso de similaridade da instalação: o ajuste do leitor só sobe a partir dele.",
+    )
     queries_today: int = Field(default=0, description="Consultas feitas hoje.")
     connections_today: int = Field(default=0, description="Trechos devolvidos hoje.")
 

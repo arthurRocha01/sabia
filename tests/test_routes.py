@@ -253,6 +253,7 @@ def test_profile_reports_the_day_usage(cliente, banco):
         "daily_limit": 1000,
         "queries_today": 0,
         "connections_today": 0,
+        "min_score_floor": 0.65,
     }
 
 
