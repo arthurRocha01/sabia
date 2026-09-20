@@ -497,7 +497,25 @@ function ConsultPage() {
   const requestRef = useRef('')
   const [loadingBooks, setLoadingBooks] = useState(true)
   const [loadingConnections, setLoadingConnections] = useState(false)
+  const [findRequest, setFindRequest] = useState<{ id: number; text: string } | undefined>()
+  const [errorVersion, setErrorVersion] = useState(0)
+  const [errorDismissing, setErrorDismissing] = useState(false)
   const requestedBookId = searchParams.get('book') ?? ''
+  const mostrarErro = (mensagem: string) => {
+    setError(mensagem)
+    setErrorDismissing(false)
+    setErrorVersion((versao) => versao + 1)
+  }
+
+  useEffect(() => {
+    if (!error) return
+    const saida = window.setTimeout(() => setErrorDismissing(true), 4500)
+    const remocao = window.setTimeout(() => setError(''), 5000)
+    return () => {
+      window.clearTimeout(saida)
+      window.clearTimeout(remocao)
+    }
+  }, [error, errorVersion])
 
   useEffect(() => {
     if (requestedBookId && requestedBookId !== bookId) {
@@ -550,19 +568,19 @@ function ConsultPage() {
         setBookId(items[0].id)
         setSearchParams({ book: items[0].id }, { replace: true })
       }
-    }).catch((caught) => setError(formatError(caught)))
+    }).catch((caught) => mostrarErro(formatError(caught)))
       .finally(() => setLoadingBooks(false))
   }, [bookId, setSearchParams])
 
   const handleSubmit = async () => {
     const query = text.trim()
     if (!query) {
-      setError('Digite um trecho ou texto para consultar.')
+      mostrarErro('Digite um trecho ou texto para consultar.')
       return
     }
 
     if (scope === 'same' && !bookId) {
-      setError('Escolha um livro para consultar apenas dentro dele.')
+      mostrarErro('Escolha um livro para consultar apenas dentro dele.')
       return
     }
 
@@ -598,7 +616,7 @@ function ConsultPage() {
       } satisfies SavedConsultation))
       setError('')
     } catch (caught) {
-      if (requestRef.current === requestKey) setError(formatError(caught))
+      if (requestRef.current === requestKey) mostrarErro(formatError(caught))
     } finally {
       if (requestRef.current === requestKey) setLoadingConnections(false)
     }
@@ -624,7 +642,17 @@ function ConsultPage() {
 
               <label className="rail-field">
                 <span>Trecho para buscar</span>
-                <textarea rows={5} value={text} onChange={(event) => setText(event.target.value)} placeholder="Cole aqui um trecho ou selecione uma passagem no livro" />
+                <textarea
+                  rows={5}
+                  value={text}
+                  onChange={(event) => {
+                    const valor = event.target.value
+                    setText(valor)
+                    setError('')
+                    setFindRequest((atual) => ({ id: (atual?.id ?? 0) + 1, text: valor }))
+                  }}
+                  placeholder="Cole aqui um trecho ou selecione uma passagem no livro"
+                />
               </label>
 
               <div className="rail-row">
@@ -664,7 +692,7 @@ function ConsultPage() {
               </button>
               <p className="rail-hint">Ou selecione um trecho diretamente no livro.</p>
 
-              {error ? <p className="inline-error">{error}</p> : null}
+              {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
 
               <div className="consult-results">
                 {loadingConnections ? <LoadingIndicator label="Construindo conexões" /> : null}
@@ -690,6 +718,7 @@ function ConsultPage() {
                 bookIdOverride={bookId}
                 externalSelectedText={text}
                 onSelectionChange={setText}
+                findRequest={findRequest}
               />
             ) : (
               <div className="empty-card">Envie um livro no perfil para começar a consultar.</div>

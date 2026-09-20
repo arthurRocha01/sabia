@@ -34,13 +34,26 @@ type ReaderPageProps = {
   bookIdOverride?: string
   externalSelectedText?: string
   onSelectionChange?: (text: string) => void
+  findRequest?: {
+    id: number
+    text: string
+  }
 }
+
+type TextPosition = {
+  node: Text
+  start: number
+  end: number
+}
+
+const normalizarTexto = (texto: string) => texto.replace(/\s+/g, ' ').trim()
 
 export default function ReaderPage({
   embedded = false,
   bookIdOverride,
   externalSelectedText,
   onSelectionChange,
+  findRequest,
 }: ReaderPageProps) {
   const params = useParams()
   const bookId = bookIdOverride ?? params.bookId
@@ -62,6 +75,8 @@ export default function ReaderPage({
   const [paginaRenderizada, setPaginaRenderizada] = useState(false)
   const [connectionsOpen, setConnectionsOpen] = useState(true)
   const [bookWidth, setBookWidth] = useState(0)
+  const [errorVersion, setErrorVersion] = useState(0)
+  const [errorDismissing, setErrorDismissing] = useState(false)
 
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([])
   const layerRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -70,6 +85,25 @@ export default function ReaderPage({
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
   const desenhoRef = useRef(0)
   const pedidoRef = useRef(0)
+  const buscaRef = useRef(0)
+  const ultimaBuscaRef = useRef(0)
+  const selecaoPendenteRef = useRef<{ page: number; text: string } | null>(null)
+  const [documentReady, setDocumentReady] = useState(false)
+  const mostrarErro = (mensagem: string) => {
+    setError(mensagem)
+    setErrorDismissing(false)
+    setErrorVersion((versao) => versao + 1)
+  }
+
+  useEffect(() => {
+    if (!error) return
+    const saida = window.setTimeout(() => setErrorDismissing(true), 4500)
+    const remocao = window.setTimeout(() => setError(''), 5000)
+    return () => {
+      window.clearTimeout(saida)
+      window.clearTimeout(remocao)
+    }
+  }, [error, errorVersion])
 
   useEffect(() => {
     if (!embedded || !bookStageRef.current) return
@@ -91,6 +125,7 @@ export default function ReaderPage({
     setHits([])
     setCard(null)
     setSelectedText(externalSelectedText ?? '')
+    setDocumentReady(false)
 
     void (async () => {
       try {
@@ -109,6 +144,7 @@ export default function ReaderPage({
         docRef.current?.destroy()
         docRef.current = documento
         setPageCount(documento.numPages)
+        setDocumentReady(true)
 
         // Uma citação tem prioridade; caso contrário, retoma a última página
         // visitada neste livro.
@@ -123,7 +159,7 @@ export default function ReaderPage({
       } catch (caught) {
         if (!vivo) return
         setStatus('')
-        setError(formatError(caught))
+        mostrarErro(formatError(caught))
       }
     })()
 
@@ -135,6 +171,150 @@ export default function ReaderPage({
     // `local.state` só importa na entrada; recarregar por ele voltaria a página.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId])
+
+  const selecionarTextoNaCamada = useCallback((layer: HTMLDivElement, texto: string) => {
+    const desejado = normalizarTexto(texto)
+    if (!desejado) return false
+
+    const walker = document.createTreeWalker(layer, NodeFilter.SHOW_TEXT)
+    const posicoes: TextPosition[] = []
+    let atual: Node | null
+    while ((atual = walker.nextNode())) {
+      const node = atual as Text
+      const elemento = node.parentElement
+      if (!elemento || elemento.closest('.endOfContent') || elemento.closest('[role="img"]')) continue
+      posicoes.push({ node, start: 0, end: node.data.length })
+    }
+
+    const normalizado: string[] = []
+    const mapa: TextPosition[] = []
+    let espacoPendente: TextPosition | null = null
+    let temTexto = false
+
+    for (const [indicePosicao, posicao] of posicoes.entries()) {
+      const primeiroCaractere = posicao.node.data[0]
+      if (
+        indicePosicao > 0
+        && temTexto
+        && primeiroCaractere
+        && !/\s/.test(primeiroCaractere)
+        && normalizado[normalizado.length - 1] !== ' '
+      ) {
+        normalizado.push(' ')
+        mapa.push({ node: posicao.node, start: 0, end: 0 })
+      }
+
+      for (let indice = 0; indice < posicao.node.data.length; indice += 1) {
+        const caractere = posicao.node.data[indice]
+        if (/\s/.test(caractere)) {
+          if (temTexto) {
+            espacoPendente ??= { node: posicao.node, start: indice, end: indice + 1 }
+          }
+          continue
+        }
+
+        if (espacoPendente) {
+          normalizado.push(' ')
+          mapa.push(espacoPendente)
+          espacoPendente = null
+        }
+        normalizado.push(caractere)
+        mapa.push({ node: posicao.node, start: indice, end: indice + 1 })
+        temTexto = true
+      }
+    }
+
+    const inicio = normalizado.join('').indexOf(desejado)
+    if (inicio < 0) return false
+
+    const fim = inicio + desejado.length - 1
+    const inicioPosicao = mapa[inicio]
+    const fimPosicao = mapa[fim]
+    if (!inicioPosicao || !fimPosicao) return false
+
+    const range = document.createRange()
+    range.setStart(inicioPosicao.node, inicioPosicao.start)
+    range.setEnd(fimPosicao.node, fimPosicao.end)
+    const selecao = window.getSelection()
+    selecao?.removeAllRanges()
+    selecao?.addRange(range)
+    range.commonAncestorContainer.parentElement?.scrollIntoView({ block: 'center', inline: 'nearest' })
+    return true
+  }, [])
+
+  const selecionarTextoPendente = useCallback(() => {
+    const pendente = selecaoPendenteRef.current
+    if (!pendente || !paginaRenderizada) return
+    const indice = pendente.page - page
+    const layer = layerRefs.current[indice]
+    if (!layer) return
+    if (selecionarTextoNaCamada(layer, pendente.text)) {
+      selecaoPendenteRef.current = null
+    }
+  }, [page, paginaRenderizada, selecionarTextoNaCamada])
+
+  useEffect(() => {
+    selecionarTextoPendente()
+    if (!selecaoPendenteRef.current || !paginaRenderizada) return
+
+    let tentativas = 0
+    let quadro = 0
+    const tentarNovamente = () => {
+      selecionarTextoPendente()
+      tentativas += 1
+      if (selecaoPendenteRef.current && tentativas < 8) {
+        quadro = window.requestAnimationFrame(tentarNovamente)
+      }
+    }
+    quadro = window.requestAnimationFrame(tentarNovamente)
+    return () => window.cancelAnimationFrame(quadro)
+  }, [selecionarTextoPendente])
+
+  useEffect(() => {
+    const solicitado = findRequest
+    const documento = docRef.current
+    const texto = solicitado ? normalizarTexto(solicitado.text) : ''
+    if (!documentReady || !documento || !texto || !solicitado || solicitado.id === ultimaBuscaRef.current) return
+
+    ultimaBuscaRef.current = solicitado.id
+    const marca = ++buscaRef.current
+    selecaoPendenteRef.current = null
+    void (async () => {
+      let paginaEncontrada = 0
+      let ocorrencias = 0
+
+      for (let numero = 1; numero <= documento.numPages; numero += 1) {
+        const pagina = await documento.getPage(numero)
+        const conteudo = await pagina.getTextContent()
+        const paginaTexto = normalizarTexto(conteudo.items
+          .map((item) => ('str' in item ? item.str : ''))
+          .join(' '))
+        if (marca !== buscaRef.current) return
+
+        let inicio = paginaTexto.indexOf(texto)
+        while (inicio >= 0) {
+          ocorrencias += 1
+          paginaEncontrada = paginaEncontrada || numero
+          if (ocorrencias > 1) {
+            mostrarErro('O texto não pode ser buscado porque há mais de uma correspondência neste livro.')
+            return
+          }
+          inicio = paginaTexto.indexOf(texto, inicio + texto.length)
+        }
+      }
+
+      if (marca === buscaRef.current) {
+        if (ocorrencias === 1) {
+          selecaoPendenteRef.current = { page: paginaEncontrada, text: texto }
+          irPara(paginaEncontrada)
+        } else {
+          mostrarErro('O texto consultado não foi encontrado neste livro.')
+        }
+      }
+    })().catch((caught) => {
+      if (marca === buscaRef.current) mostrarErro(formatError(caught))
+    })
+  }, [documentReady, findRequest, pageCount])
 
   // Desenho da página atual: canvas na resolução da tela, camada de texto por cima.
   useEffect(() => {
@@ -215,7 +395,7 @@ export default function ReaderPage({
 
       if (marca === desenhoRef.current) setPaginaRenderizada(true)
     })().catch((caught) => {
-      if (marca === desenhoRef.current) setError(formatError(caught))
+      if (marca === desenhoRef.current) mostrarErro(formatError(caught))
     })
   }, [embedded, page, zoom, pageCount, bookWidth])
 
@@ -230,18 +410,18 @@ export default function ReaderPage({
     }
   }, [])
 
-  const irPara = (numero: number) => {
+  const irPara = useCallback((numero: number) => {
     if (!Number.isFinite(numero)) return
     const destino = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
     setPage(destino)
     setAlvoDaPagina(String(destino))
     if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
-  }
+  }, [bookId, pageCount])
 
   const buscarConexoes = async () => {
     const texto = selectedText.trim()
     if (!texto || !bookId) {
-      setError('Selecione um trecho no livro para buscar conexões.')
+      mostrarErro('Selecione um trecho no livro para buscar conexões.')
       return
     }
 
@@ -263,7 +443,7 @@ export default function ReaderPage({
       setCard(resposta)
       setError('')
     } catch (caught) {
-      if (marca === pedidoRef.current) setError(formatError(caught))
+      if (marca === pedidoRef.current) mostrarErro(formatError(caught))
     } finally {
       if (marca === pedidoRef.current) setBusy(false)
     }
@@ -311,7 +491,7 @@ export default function ReaderPage({
             </label>
           </div>
 
-          {error ? <p className="inline-error">{error}</p> : null}
+          {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
           {status ? <LoadingIndicator label={status} /> : null}
 
           <div className="pdf-frame">
