@@ -1,11 +1,11 @@
 import type { Citation } from '../../api/types'
 
-type CitacaoProps = {
+type CitationProps = {
   citation: Citation
   onOpen: (citation: Citation) => void
 }
 
-export default function Citacao({ citation, onOpen }: CitacaoProps) {
+export default function Citation({ citation, onOpen }: CitationProps) {
   return (
     <li>
       <button type="button" className="link-button" onClick={() => onOpen(citation)}>

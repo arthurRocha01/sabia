@@ -1,6 +1,6 @@
 import type { RefCallback } from 'react'
 
-type PaginaDoPdfProps = {
+type PdfPageProps = {
   page: number
   index: number
   pageCount: number
@@ -11,7 +11,7 @@ type PaginaDoPdfProps = {
   onMouseUp: () => void
 }
 
-export default function PaginaDoPdf({
+export default function PdfPage({
   page,
   index,
   pageCount,
@@ -20,7 +20,7 @@ export default function PaginaDoPdf({
   canvasRef,
   layerRef,
   onMouseUp,
-}: PaginaDoPdfProps) {
+}: PdfPageProps) {
   return (
     <div
       ref={pageRef}

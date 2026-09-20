@@ -91,7 +91,7 @@
   outline-offset: 1px;
 }
 
-/* Precisão da consulta: o piso da instalação é o começo, não o fim. */
+/* Precisão da consulta: o floor da instalação é o começo, não o fim. */
 .rail-precision span {
   display: flex;
   align-items: baseline;

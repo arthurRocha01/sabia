@@ -19,11 +19,15 @@ import { connect } from '../../api/connect'
 import { fetchBookFile, listBooks } from '../../api/books'
 import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from '../../api/types'
 import { useProfile } from '../../app/profile'
-import Cabecalho from '../../ui/Cabecalho'
-import Indicador from '../../ui/Indicador'
-import Citacao from './Citacao'
-import PaginaDoPdf from './PaginaDoPdf'
-import SelecaoDeTrecho from './SelecaoDeTrecho'
+import { usePrecision } from '../../app/precision'
+import Header from '../../ui/Header'
+import Indicator from '../../ui/Indicator'
+import Citation from './Citation'
+import PdfPage from './PdfPage'
+import BookToolbar from './BookToolbar'
+import EvidencePanel from './EvidencePanel'
+import BookFooter from './BookFooter'
+import TextSelection from './TextSelection'
 
 // O parsing roda fora da linha principal, num worker; é ele que não deixa a
 // rolagem travar em página grande.
@@ -54,7 +58,7 @@ type TextPosition = {
 
 const normalizarTexto = (texto: string) => texto.replace(/\s+/g, ' ').trim()
 
-export default function LeitorPage({
+export default function ReaderPage({
   embedded = false,
   bookIdOverride,
   externalSelectedText,
@@ -62,6 +66,7 @@ export default function LeitorPage({
   findRequest,
 }: ReaderPageProps) {
   const { profile } = useProfile()
+  const { minScore } = usePrecision()
   const params = useParams()
   const bookId = bookIdOverride ?? params.bookId
   const navegar = useNavigate()
@@ -71,7 +76,7 @@ export default function LeitorPage({
   const [activeBook, setActiveBook] = useState<Book | null>(null)
   const [pageCount, setPageCount] = useState(0)
   const [page, setPage] = useState(1)
-  const [alvoDaPagina, setAlvoDaPagina] = useState('1')
+  const [pageTarget, setPageTarget] = useState('1')
   const [zoom, setZoom] = useState(ZOOM_INICIAL)
   const [status, setStatus] = useState('carregando o arquivo…')
   const [selectedText, setSelectedText] = useState(externalSelectedText ?? '')
@@ -160,7 +165,7 @@ export default function LeitorPage({
         const paginaSalva = Number.isInteger(salva) && salva >= 1 && salva <= documento.numPages ? salva : 1
         const inicial = pedida && pedida >= 1 && pedida <= documento.numPages ? pedida : paginaSalva
         setPage(inicial)
-        setAlvoDaPagina(String(inicial))
+        setPageTarget(String(inicial))
         localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(inicial))
         setStatus('')
       } catch (caught) {
@@ -404,7 +409,10 @@ export default function LeitorPage({
     })().catch((caught) => {
       if (marca === desenhoRef.current) mostrarErro(formatError(caught))
     })
-  }, [embedded, page, zoom, pageCount, bookWidth])
+    // `documentReady` entra nas dependências porque trocar de livro pode manter
+    // página, zoom e contagem iguais: sem ele, o desenho não é refeito e a tela
+    // segue mostrando o livro anterior sob o título do novo.
+  }, [documentReady, embedded, page, zoom, pageCount, bookWidth])
 
   /** Ao soltar o mouse, o que ficou selecionado vira o trecho a conectar. */
   const capturarSelecao = useCallback(() => {
@@ -421,7 +429,7 @@ export default function LeitorPage({
     if (!Number.isFinite(numero)) return
     const destino = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
     setPage(destino)
-    setAlvoDaPagina(String(destino))
+    setPageTarget(String(destino))
     if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
   }, [bookId, pageCount])
 
@@ -442,7 +450,7 @@ export default function LeitorPage({
         scope: 'others',
         book_id: bookId,
         k: 3,
-        ...(profile ? { min_score: profile.min_score_floor } : {}),
+        ...(minScore === null ? {} : { min_score: minScore }),
       }
       const resposta = await connect(payload)
       if (marca !== pedidoRef.current) return
@@ -457,7 +465,7 @@ export default function LeitorPage({
   }
 
   /** A citação abre a página: no mesmo livro, aqui; em outro, lá. */
-  const abrirCitacao = (citacao: InterpretationResponse['citations'][number]) => {
+  const openCitation = (citacao: InterpretationResponse['citations'][number]) => {
     if (citacao.book_id === bookId) {
       irPara(citacao.page_index + 1)
       return
@@ -474,7 +482,7 @@ export default function LeitorPage({
 
   return (
     <>
-      {!embedded ? <Cabecalho books={books} loading={Boolean(status)} /> : null}
+      {!embedded ? <Header books={books} loading={Boolean(status)} /> : null}
 
       <main className={embedded ? 'workspace-layout' : 'reader-layout workspace-grid'}>
         <section className={embedded ? 'book-workspace' : 'panel viewer-panel'}>
@@ -499,61 +507,25 @@ export default function LeitorPage({
           </div>
 
           {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
-          {status ? <Indicador label={status} /> : null}
+          {status ? <Indicator label={status} /> : null}
 
           <div className="pdf-frame">
-            {!embedded ? <div className="pdf-toolbar minimal-pdf-toolbar">
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => irPara(page - 1)}
-                disabled={page <= 1}
-                aria-label="Página anterior"
-                title="Página anterior"
-              >
-                {embedded ? '←' : 'Anterior'}
-              </button>
-              <span className="pdf-position">
-                página <strong>{page}</strong> de {pageCount || '—'}
-              </span>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => irPara(page + 1)}
-                disabled={pageCount === 0 || page >= pageCount}
-                aria-label="Próxima página"
-                title="Próxima página"
-              >
-                {embedded ? '→' : 'Próxima'}
-              </button>
-
-              <label className="field-group pdf-goto">
-                <span>Ir para</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={pageCount || 1}
-                  value={alvoDaPagina}
-                  onChange={(evento) => setAlvoDaPagina(evento.target.value)}
-                  onKeyDown={(evento) => {
-                    if (evento.key === 'Enter') irPara(Number(alvoDaPagina))
-                  }}
-                />
-              </label>
-
-              <span className="pdf-zoom">
-                <button type="button" className="ghost-button" onClick={() => mudarZoom(-PASSO_ZOOM)}>−</button>
-                <span className="muted-copy">{Math.round(zoom * 100)}%</span>
-                <button type="button" className="ghost-button" onClick={() => mudarZoom(PASSO_ZOOM)}>+</button>
-              </span>
-            </div> : null}
-
+            {!embedded ? <BookToolbar
+              page={page}
+              pageCount={pageCount}
+              target={pageTarget}
+              zoom={zoom}
+              zoomStep={PASSO_ZOOM}
+              onGoTo={irPara}
+              onTarget={setPageTarget}
+              onZoom={mudarZoom}
+            /> : null}
             <div
               ref={bookStageRef}
               className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}`}
             >
               {[0, 1].map((index) => (
-                <PaginaDoPdf
+                <PdfPage
                   key={`${page}-${zoom}-${index}`}
                   page={page}
                   index={index}
@@ -569,25 +541,11 @@ export default function LeitorPage({
           </div>
 
           {embedded ? (
-            <footer className="book-footer">
-              <button type="button" className="page-button" onClick={() => irPara(page - 1)} disabled={page <= 1}>
-                ← Anterior
-              </button>
-              <div className="book-progress">
-                <span>Página {page}</span>
-                <div className="progress-track">
-                  <span style={{ width: `${pageCount ? (page / pageCount) * 100 : 0}%` }} />
-                </div>
-                <span>{pageCount || '—'}</span>
-              </div>
-              <button type="button" className="page-button" onClick={() => irPara(page + 1)} disabled={pageCount === 0 || page >= pageCount}>
-                Próxima →
-              </button>
-            </footer>
+            <BookFooter page={page} pageCount={pageCount} onGoTo={irPara} />
           ) : null}
 
           {!embedded ? (
-            <SelecaoDeTrecho
+            <TextSelection
               text={selectedText}
               busy={busy}
               onChange={(text) => {
@@ -600,61 +558,13 @@ export default function LeitorPage({
         </section>
 
         {!embedded && connectionsOpen ? <aside className="panel sidebar-panel connections-panel-wrapper">
-          <div className="connections-title">
-            <div>
-              <p className="eyebrow">Conexões</p>
-              <h2>Evidência</h2>
-            </div>
-            <button type="button" className="panel-control" onClick={() => setConnectionsOpen(false)} aria-label="Recolher conexões">×</button>
-          </div>
-
-          {busy ? <Indicador label="Buscando conexões" compact /> : null}
-
-          <div className="result-stack">
-            {hits.length === 0 ? (
-              <p className="muted-copy">Selecione um trecho para ver o que outros autores dizem.</p>
-            ) : (
-              hits.map((hit) => (
-                <article
-                  key={`${hit.book_id}-${hit.page_index}-${hit.text.slice(0, 24)}`}
-                  className="result-card"
-                >
-                  <div className="result-head">
-                    <strong>{hit.title}</strong>
-                    <span>{hit.score.toFixed(2)}</span>
-                  </div>
-                  <p>{hit.text}</p>
-                  <small>{hit.author} · página {hit.page_label ?? hit.page_index + 1}</small>
-                </article>
-              ))
-            )}
-          </div>
-
-          <div className="divider" />
-
-          <div className="result-stack">
-            {card ? (
-              <article className="result-card emphasis">
-                <div className="result-head">
-                  <strong>{card.relation ?? 'Sem classificação'}</strong>
-                </div>
-                <p>{card.card}</p>
-                {card.citations.length > 0 ? (
-                  <ul className="citation-list">
-                    {card.citations.map((citacao) => (
-                      <Citacao
-                        key={`${citacao.book_id}-${citacao.page_index}`}
-                        citation={citacao}
-                        onOpen={abrirCitacao}
-                      />
-                    ))}
-                  </ul>
-                ) : null}
-              </article>
-            ) : (
-              <p className="muted-copy">O card de interpretação aparecerá aqui.</p>
-            )}
-          </div>
+          <EvidencePanel
+            hits={hits}
+            card={card}
+            busy={busy}
+            onClose={() => setConnectionsOpen(false)}
+            onOpenCitation={openCitation}
+          />
         </aside> : null}
         {!embedded && !connectionsOpen ? (
           <button type="button" className="open-panel-button" onClick={() => setConnectionsOpen(true)}>

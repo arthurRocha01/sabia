@@ -1,11 +1,11 @@
-type SelecaoDeTrechoProps = {
+type TextSelectionProps = {
   text: string
   busy: boolean
   onChange: (text: string) => void
   onSubmit: () => void
 }
 
-export default function SelecaoDeTrecho({ text, busy, onChange, onSubmit }: SelecaoDeTrechoProps) {
+export default function TextSelection({ text, busy, onChange, onSubmit }: TextSelectionProps) {
   return (
     <div className="selection-box">
       <label className="field-group">

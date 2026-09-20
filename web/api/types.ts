@@ -50,7 +50,7 @@ export interface ConnectResponse {
   hits: Hit[]
   word_count: number
   truncated: boolean
-  /** Limiar efetivamente aplicado: o maior entre o piso do motor e o que foi pedido. */
+  /** Limiar efetivamente aplicado: o maior entre o floor do motor e o que foi pedido. */
   min_score: number
   /** Síntese; `null` quando a interpretação não voltou — a evidência vem mesmo assim. */
   card: string | null

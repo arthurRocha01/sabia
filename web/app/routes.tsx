@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import type { ComponentType } from 'react'
-import LeitorPage from '../features/leitura/LeitorPage'
+import ReaderPage from '../features/leitura/ReaderPage'
 
 type RouteComponents = {
   LoginPage: ComponentType
@@ -17,7 +17,7 @@ export function AppRoutes({ hasSession, onSignOut, LoginPage, ProfilePage, Consu
       <Route path="/entrar" element={hasSession ? <Navigate to="/perfil" replace /> : <LoginPage />} />
       <Route path="/perfil" element={hasSession ? <ProfilePage onSignOut={onSignOut} /> : <Navigate to="/entrar" replace />} />
       <Route path="/consultar" element={hasSession ? <ConsultPage /> : <Navigate to="/entrar" replace />} />
-      <Route path="/ler/:bookId" element={hasSession ? <LeitorPage /> : <Navigate to="/entrar" replace />} />
+      <Route path="/ler/:bookId" element={hasSession ? <ReaderPage /> : <Navigate to="/entrar" replace />} />
       <Route path="*" element={<Navigate to={hasSession ? '/perfil' : '/entrar'} replace />} />
     </Routes>
   )

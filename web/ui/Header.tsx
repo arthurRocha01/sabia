@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom'
 import type { Book } from '../api/types'
-import Indicador from './Indicador'
+import Indicator from './Indicator'
 
-type CabecalhoProps = {
+type HeaderProps = {
   books: Book[]
   loading?: boolean
   mode?: 'profile'
 }
 
-export default function Cabecalho({ books, loading = false, mode }: CabecalhoProps) {
+export default function Header({ books, loading = false, mode }: HeaderProps) {
   const chunks = books.reduce((total, book) => total + (book.n_chunks ?? 0), 0)
 
   return (
@@ -19,7 +19,7 @@ export default function Cabecalho({ books, loading = false, mode }: CabecalhoPro
       </div>
 
       {loading ? (
-        <Indicador label="Carregando acervo" compact />
+        <Indicator label="Carregando acervo" compact />
       ) : (
         <p className="library-summary">
           {books.length} {books.length === 1 ? 'livro' : 'livros'} · {chunks} trechos

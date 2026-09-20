@@ -1,9 +1,9 @@
-type IndicadorProps = {
+type IndicatorProps = {
   label: string
   compact?: boolean
 }
 
-export default function Indicador({ label, compact = false }: IndicadorProps) {
+export default function Indicator({ label, compact = false }: IndicatorProps) {
   return (
     <div className={compact ? 'loading-indicator compact' : 'loading-indicator'} role="status" aria-live="polite">
       <span className="loading-orbit" aria-hidden="true">

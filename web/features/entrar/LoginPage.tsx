@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../app/session'
 
-export default function EntrarPage() {
+export default function LoginPage() {
   const navigate = useNavigate()
   const { signIn } = useSession()
   const [email, setEmail] = useState('')

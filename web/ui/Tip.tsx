@@ -1,8 +1,8 @@
-type DicaProps = {
+type TipProps = {
   children: string
 }
 
-export default function Dica({ children }: DicaProps) {
+export default function Tip({ children }: TipProps) {
   return (
     <span className="help-tip">
       <button type="button" className="help-tip-button" aria-label="Mais informações">?</button>
