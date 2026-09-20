@@ -31,6 +31,12 @@ class ConfigError(Exception):
     """Configuração ausente ou inválida. Falha na inicialização, não em uso."""
 
 
+def _list_value(env: Mapping[str, str], name: str) -> tuple[str, ...]:
+    """Lista separada por vírgula, sem vazios. Ausente significa lista vazia."""
+    bruto = (env.get(name) or "").strip()
+    return tuple(item.strip() for item in bruto.split(",") if item.strip())
+
+
 def _int_value(env: Mapping[str, str], name: str, default: int) -> int:
     raw = (env.get(name) or "").strip()
     if not raw:
@@ -85,6 +91,10 @@ class Settings:
     supabase_publishable_key: str
     supabase_secret_key: str
     supabase_jwks_url: str
+    # Origens autorizadas a chamar o motor de outro domínio. Vazio (o padrão) quer
+    # dizer "só a mesma origem" — que é o caso em produção, onde o cliente e o
+    # motor moram no mesmo endereço.
+    allowed_origins: tuple[str, ...] = ()
 
     @property
     def embedding_dimensions(self) -> int:
@@ -152,6 +162,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         supabase_publishable_key=_text_value(env, "SUPABASE_PUBLISHABLE_KEY"),
         supabase_secret_key=_text_value(env, "SUPABASE_SECRET_KEY"),
         supabase_jwks_url=_text_value(env, "SUPABASE_JWKS_URL"),
+        allowed_origins=_list_value(env, "ALLOWED_ORIGINS"),
     )
 
 

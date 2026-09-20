@@ -504,6 +504,21 @@ def test_profile_rejects_a_patch_with_nothing_to_change(cliente):
 # ---------------------------------------------------------------------------
 # Contrato publicado
 # ---------------------------------------------------------------------------
+def test_no_cors_by_default_and_cors_only_for_declared_origins():
+    """O motor não abre porta para qualquer origem: quem precisa declara."""
+    from fastapi.testclient import TestClient
+
+    from engine.api.app import create_app
+
+    fechado = TestClient(create_app()).get("/api/books", headers={"Origin": "https://de.fora"})
+    assert "access-control-allow-origin" not in fechado.headers
+
+    aberto = TestClient(create_app(("https://declarado.exemplo",))).get(
+        "/api/books", headers={"Origin": "https://declarado.exemplo"}
+    )
+    assert aberto.headers["access-control-allow-origin"] == "https://declarado.exemplo"
+
+
 def test_openapi_pins_the_contract_field_names(cliente):
     esquema = cliente.get("/openapi.json").json()
     componentes = esquema["components"]["schemas"]

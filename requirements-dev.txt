@@ -1,0 +1,9 @@
+# Ambiente de desenvolvimento: a função, mais o que só serve à bancada.
+#
+#   python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+uvicorn[standard]          # servidor local; a Vercel roda ASGI sem ele
+pytest
+ruff

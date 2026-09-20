@@ -23,6 +23,18 @@ def test_minimal_valid_env_applies_defaults():
     assert settings.embedding_dimensions == EMBEDDING_DIMENSIONS == 3072
 
 
+def test_allowed_origins_is_empty_by_default():
+    """Sem declaração, nenhuma origem de fora é autorizada."""
+    assert load_settings(dict(VALID_ENV)).allowed_origins == ()
+
+
+def test_allowed_origins_reads_a_comma_separated_list():
+    settings = load_settings(
+        dict(VALID_ENV, ALLOWED_ORIGINS=" https://um.exemplo , https://dois.exemplo ,")
+    )
+    assert settings.allowed_origins == ("https://um.exemplo", "https://dois.exemplo")
+
+
 def test_reports_all_missing_vars_at_once():
     with pytest.raises(ConfigError) as error:
         load_settings({"DEEPSEEK_API_KEY": "x"})

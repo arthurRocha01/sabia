@@ -28,8 +28,13 @@ except ImportError:  # pragma: no cover
     pass
 
 
-def create_app() -> FastAPI:
-    """Monta a aplicação com as rotas e o tratamento de erro do contrato."""
+def create_app(allowed_origins: tuple[str, ...] = ()) -> FastAPI:
+    """Monta a aplicação com as rotas e o tratamento de erro do contrato.
+
+    `allowed_origins` vazio — o padrão — não adiciona CORS nenhum: em produção o
+    cliente e o motor estão no mesmo endereço, e abrir a porta para qualquer
+    origem é convite que ninguém pediu. Quem precisa de outro domínio declara.
+    """
     from engine.api import routes_books, routes_connect, routes_jobs, routes_profile
 
     erro = {"model": schemas.ErrorResponse}
@@ -53,14 +58,15 @@ def create_app() -> FastAPI:
             504: {**erro, "description": "Operação excedeu o tempo"},
         },
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-        # O leitor de PDF precisa ler o intervalo de bytes da resposta.
-        expose_headers=["Content-Range", "Accept-Ranges", "Content-Length"],
-    )
+    if allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(allowed_origins),
+            allow_methods=["*"],
+            allow_headers=["*"],
+            # O leitor de PDF precisa ler o intervalo de bytes da resposta.
+            expose_headers=["Content-Range", "Accept-Ranges", "Content-Length"],
+        )
 
     @app.exception_handler(SabiaError)
     async def erro_do_contrato(_: Request, falha: SabiaError) -> JSONResponse:
