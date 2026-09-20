@@ -79,9 +79,6 @@ export interface Profile {
   interpretation_profile: string
   texts_today: number
   daily_limit: number
-  /** Atividade do dia, do registro de calibração do motor. */
-  queries_today: number
-  connections_today: number
 }
 
 export interface ErrorResponse {

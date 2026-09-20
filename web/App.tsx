@@ -142,15 +142,6 @@ function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
   )
 }
 
-function HelpTip({ children }: { children: string }) {
-  return (
-    <span className="help-tip">
-      <button type="button" className="help-tip-button" aria-label="Mais informações">?</button>
-      <span className="help-tip-content" role="tooltip">{children}</span>
-    </span>
-  )
-}
-
 function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
   const navigate = useNavigate()
   const [books, setBooks] = useState<Book[]>([])
@@ -361,13 +352,13 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                   }
                 }}>
                   <label className="field-group">
-                    <span className="field-label-with-help">
-                      Linha de aprendizado
-                      <HelpTip>O assunto da leitura. Ele fica como contexto corrente para as consultas.</HelpTip>
-                    </span>
+                    <span>Linha de aprendizado</span>
                     <input name="current_line" defaultValue={profile.current_line ?? ''} placeholder="Sobre o que você está lendo" />
                   </label>
                   <button type="submit" className="secondary-button">Salvar linha</button>
+                  <p className="hint">
+                    O assunto da leitura. Vale como padrão para novos livros e vai ao motor como contexto.
+                  </p>
                 </form>
               </section>
 
@@ -387,10 +378,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                   }
                 }}>
                   <label className="field-group">
-                    <span className="field-label-with-help">
-                      Como interpretar
-                      <HelpTip>Oriente o tom e os aspectos que o Sabiá deve priorizar ao relacionar suas ideias com os livros.</HelpTip>
-                    </span>
+                    <span>Como interpretar</span>
                     <textarea
                       name="interpretation_profile"
                       rows={4}
@@ -403,10 +391,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                 </form>
 
                 <div className="field-group card-length">
-                <span className="field-label-with-help">
-                  Tamanho da interpretação
-                  <HelpTip>Define o espaço esperado para o card: Padrão tem até três frases, Alto até oito e Livre deixa o modelo decidir.</HelpTip>
-                </span>
+                <span>Tamanho da interpretação</span>
                 <div className="segmented" role="group" aria-label="Tamanho da interpretação">
                   {(
                     [
@@ -434,27 +419,22 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                   ))}
                 </div>
                 </div>
+                <p className="hint">
+                  O texto acima ajusta o tom e o que enfatizar; o tamanho diz quanto o card pode crescer.
+                  Nenhum dos dois muda o formato da resposta, a língua ou as fontes — isso é da política do motor.
+                </p>
               </section>
 
               <section className="side-block">
                 <p className="eyebrow">Conta</p>
-                <h2>Hoje</h2>
+                <h2>Consumo do dia</h2>
                 <div className="metric-row">
-                  <span>Consultas</span>
-                  <strong>{profile.queries_today}</strong>
+                  <span>Textos hoje</span>
+                  <strong>{profile.texts_today}</strong>
                 </div>
                 <div className="metric-row">
-                  <span>Conexões</span>
-                  <strong>{profile.connections_today}</strong>
-                </div>
-                <div className="metric-row">
-                  <span className="metric-label-with-help">
-                    Cota diária usada
-                    <HelpTip>Consultas e conexões mostram o que você leu. A cota representa os trechos consumidos pela ingestão contra o limite do dia.</HelpTip>
-                  </span>
-                  <strong>
-                    {profile.texts_today} / {profile.daily_limit}
-                  </strong>
+                  <span>Limite diário</span>
+                  <strong>{profile.daily_limit}</strong>
                 </div>
               </section>
             </>
