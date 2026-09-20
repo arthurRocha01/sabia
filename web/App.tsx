@@ -458,11 +458,11 @@ function ConsultPage() {
       <ToolHeader />
 
       <main className="consult-layout">
-        <aside className="connections-rail consult-rail" aria-label="Busca e conexões">
+        <aside className="connections-rail consult-rail" aria-label="Busca e interpretação">
           <div className="rail-header">
             <div>
               <p className="eyebrow">Ferramenta de consulta</p>
-              <h1>Conexões</h1>
+              <h1>Interpretação</h1>
             </div>
             <span className="rail-dot" aria-hidden="true" />
           </div>
@@ -512,29 +512,46 @@ function ConsultPage() {
                     <span className="relation-badge">{card.relation ?? 'Sem classificação'}</span>
                   </article>
                 ) : null}
-                {!loadingConnections && hits.map((hit) => (
-                  <article key={`${hit.book_id}-${hit.page_index}-${hit.text.slice(0, 12)}`} className="rail-hit">
-                    <p className="rail-hit-meta"><strong>{hit.author}</strong> · <span>{hit.title}, pág. {hit.page_label ?? hit.page_index + 1}</span><b>score {hit.score.toFixed(3)}</b></p>
-                    <p className="rail-hit-text">{hit.text}</p>
-                  </article>
-                ))}
               </div>
             </section>
           </div>
         </aside>
 
-        <section className="consult-book">
-          {bookId ? (
-            <ReaderPage
-              embedded
-              bookIdOverride={bookId}
-              externalSelectedText={text}
-              onSelectionChange={setText}
-            />
-          ) : (
-            <div className="empty-card">Envie um livro no perfil para começar a consultar.</div>
-          )}
-        </section>
+        <div className="consult-main">
+          <section className="consult-book">
+            {bookId ? (
+              <ReaderPage
+                embedded
+                bookIdOverride={bookId}
+                externalSelectedText={text}
+                onSelectionChange={setText}
+              />
+            ) : (
+              <div className="empty-card">Envie um livro no perfil para começar a consultar.</div>
+            )}
+          </section>
+
+          <section className="consult-connections" aria-label="Conexões encontradas">
+            <div className="connections-title">
+              <div>
+                <p className="eyebrow">Conexões</p>
+                <h2>Evidências encontradas</h2>
+              </div>
+            </div>
+
+            <div className="consult-results">
+              {!loadingConnections && hits.length === 0 ? (
+                <p className="muted-copy">As conexões encontradas aparecerão aqui.</p>
+              ) : null}
+              {!loadingConnections && hits.map((hit) => (
+                <article key={`${hit.book_id}-${hit.page_index}-${hit.text.slice(0, 12)}`} className="rail-hit">
+                  <p className="rail-hit-meta"><strong>{hit.author}</strong> · <span>{hit.title}, pág. {hit.page_label ?? hit.page_index + 1}</span><b>score {hit.score.toFixed(3)}</b></p>
+                  <p className="rail-hit-text">{hit.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
     </>
   )

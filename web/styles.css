@@ -950,6 +950,12 @@ textarea {
   padding-top: 28px;
 }
 
+.consult-main {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+}
+
 .consult-rail {
   position: sticky;
   top: 20px;
@@ -1012,6 +1018,21 @@ textarea {
 
 .consult-book {
   min-height: calc(100vh - 130px);
+}
+
+.consult-connections {
+  min-width: 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.consult-connections .consult-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.consult-connections .rail-hit {
+  min-width: 0;
 }
 
 .consult-book .viewer-panel {
@@ -1124,6 +1145,10 @@ textarea {
   .consult-layout {
     grid-template-columns: 230px minmax(0, 1fr);
     gap: 20px;
+  }
+
+  .consult-connections .consult-results {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1395,6 +1420,10 @@ textarea {
   margin: 2px 0 0;
 }
 
+.consult-connections .consult-results {
+  margin: 16px 0 0;
+}
+
 .consult-rail .rail-card,
 .consult-rail .rail-hit {
   padding: 10px;
@@ -1440,5 +1469,39 @@ textarea {
 }
 
 .consult-rail .rail-hit-text {
+  margin-top: 7px;
+}
+
+.consult-connections .rail-hit {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+}
+
+.consult-connections .rail-hit-meta,
+.consult-connections .rail-hit-text {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.consult-connections .rail-hit-meta {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.consult-connections .rail-hit-meta strong {
+  color: var(--ink);
+}
+
+.consult-connections .rail-hit-meta b {
+  float: right;
+  color: var(--accent);
+  font-family: var(--font-data);
+  font-weight: 500;
+}
+
+.consult-connections .rail-hit-text {
   margin-top: 7px;
 }
