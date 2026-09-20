@@ -2,15 +2,17 @@
 export default function BookFooter({
   page,
   pageCount,
+  pageStep,
   onGoTo,
 }: {
   page: number
   pageCount: number
+  pageStep: number
   onGoTo: (pagina: number) => void
 }) {
   return (
     <footer className="book-footer">
-      <button type="button" className="page-button" onClick={() => onGoTo(page - 1)} disabled={page <= 1}>
+      <button type="button" className="page-button" onClick={() => onGoTo(page - pageStep)} disabled={page <= 1}>
         ← Anterior
       </button>
       <div className="book-progress">
@@ -23,8 +25,8 @@ export default function BookFooter({
       <button
         type="button"
         className="page-button"
-        onClick={() => onGoTo(page + 1)}
-        disabled={pageCount === 0 || page >= pageCount}
+        onClick={() => onGoTo(page + pageStep)}
+        disabled={pageCount === 0 || page + pageStep > pageCount}
       >
         Próxima →
       </button>

@@ -137,6 +137,11 @@
   top: 0;
 }
 
+.textLayer {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* A seleção usa a cor do produto, não o azul do navegador. */
 .textLayer ::selection {
   background: color-mix(in srgb, var(--accent) 42%, transparent);
@@ -315,6 +320,102 @@
 @media (max-width: 920px) {
   .tool-header {
     grid-template-columns: 1fr auto;
+  }
+
+  @media (max-width: 800px) {
+    .pdf-stage {
+      max-height: calc(100dvh - 190px);
+      padding: 8px;
+      overscroll-behavior: contain;
+    }
+
+    .pdf-stage.open-book {
+      grid-template-columns: 1fr;
+    }
+
+    .pdf-page {
+      max-width: 100%;
+    }
+
+    .tool-header {
+      gap: 10px;
+      padding-bottom: 12px;
+    }
+
+    .library-summary {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mode-switch a,
+    .profile-link {
+      min-height: 44px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .pdf-toolbar {
+      gap: 6px;
+    }
+
+    .pdf-toolbar .pdf-position {
+      order: 2;
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    .pdf-toolbar .pdf-goto {
+      order: 3;
+      width: 72px;
+    }
+
+    .pdf-zoom {
+      order: 4;
+      margin-left: 0;
+    }
+
+    .minimal-pdf-toolbar .ghost-button {
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .embedded-reader .viewer-panel {
+      min-height: 0;
+      padding: 0;
+    }
+
+    .consult-book .book-toolbar {
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 0 4px 10px;
+    }
+
+    .consult-book .book-toolbar h2 {
+      font-size: clamp(1rem, 5vw, 1.35rem);
+    }
+
+    .consult-book .book-picker {
+      min-width: 0;
+      max-width: 46%;
+    }
+
+    .consult-book .book-picker select {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .pdf-stage {
+      padding: 4px;
+    }
+
+    .pdf-toolbar .pdf-goto {
+      width: 62px;
+    }
   }
 
   /* A consulta prioriza o livro: os controles e evidências não devem competir

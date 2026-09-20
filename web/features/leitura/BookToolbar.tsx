@@ -2,6 +2,7 @@
 export default function BookToolbar({
   page,
   pageCount,
+  pageStep,
   target,
   zoom,
   zoomStep,
@@ -11,6 +12,7 @@ export default function BookToolbar({
 }: {
   page: number
   pageCount: number
+  pageStep: number
   target: string
   zoom: number
   zoomStep: number
@@ -23,7 +25,7 @@ export default function BookToolbar({
       <button
         type="button"
         className="ghost-button"
-        onClick={() => onGoTo(page - 1)}
+        onClick={() => onGoTo(page - pageStep)}
         disabled={page <= 1}
         aria-label="Página anterior"
         title="Página anterior"
@@ -36,8 +38,8 @@ export default function BookToolbar({
       <button
         type="button"
         className="ghost-button"
-        onClick={() => onGoTo(page + 1)}
-        disabled={pageCount === 0 || page >= pageCount}
+        onClick={() => onGoTo(page + pageStep)}
+        disabled={pageCount === 0 || page + pageStep > pageCount}
         aria-label="Próxima página"
         title="Próxima página"
       >

@@ -21,6 +21,7 @@ export default function SearchRail({
   onCount,
   onPrecision,
   onSearch,
+  className = '',
 }: {
   text: string
   scope: 'others' | 'same'
@@ -38,9 +39,10 @@ export default function SearchRail({
   onCount: (valor: number) => void
   onPrecision: (valor: number) => void
   onSearch: () => void
+  className?: string
 }) {
   return (
-    <aside className="connections-rail consult-rail" aria-label="Busca e interpretação">
+    <aside className={`connections-rail consult-rail ${className}`.trim()} aria-label="Busca e interpretação">
       <div className="rail-header">
         <div>
           <p className="eyebrow">Ferramenta de consulta</p>

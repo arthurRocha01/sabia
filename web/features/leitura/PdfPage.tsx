@@ -8,7 +8,7 @@ type PdfPageProps = {
   pageRef: RefCallback<HTMLDivElement>
   canvasRef: RefCallback<HTMLCanvasElement>
   layerRef: RefCallback<HTMLDivElement>
-  onMouseUp: () => void
+  onSelect: () => void
 }
 
 export default function PdfPage({
@@ -19,7 +19,7 @@ export default function PdfPage({
   pageRef,
   canvasRef,
   layerRef,
-  onMouseUp,
+  onSelect,
 }: PdfPageProps) {
   return (
     <div
@@ -32,7 +32,8 @@ export default function PdfPage({
       <div
         ref={layerRef}
         className="textLayer"
-        onMouseUp={onMouseUp}
+        onMouseUp={onSelect}
+        onTouchEnd={onSelect}
       />
     </div>
   )

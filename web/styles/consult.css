@@ -103,6 +103,10 @@
   min-width: 0;
 }
 
+.mobile-consult-actions {
+  display: none;
+}
+
 .consult-book .viewer-panel {
   min-height: 0;
   padding: 0;
@@ -602,6 +606,187 @@
   transform: translateY(-50%) translateX(0) scale(1);
 }
 
+@media (max-width: 560px) {
+  .consult-layout {
+    position: relative;
+    display: block;
+    padding-top: 14px;
+    padding-bottom: 76px;
+  }
+
+  .consult-rail {
+    display: none;
+  }
+
+  .consult-rail.is-mobile-open {
+    position: fixed;
+    bottom: max(66px, calc(env(safe-area-inset-bottom) + 58px));
+    left: 50%;
+    width: min(380px, calc(100% - 24px));
+    max-width: 380px;
+    z-index: 30;
+    display: grid;
+    max-height: calc(100dvh - 150px);
+    min-height: 0;
+    overflow: auto;
+    border-radius: 14px;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 42%);
+    transform: translateX(-50%);
+  }
+
+  .consult-rail.is-mobile-open .rail-header {
+    padding: 16px 16px 12px;
+  }
+
+  .consult-rail.is-mobile-open .rail-header h1 {
+    font-size: clamp(1.05rem, 5vw, 1.3rem);
+  }
+
+  .consult-rail.is-mobile-open .rail-content {
+    min-width: 0;
+    padding: 12px 14px 14px;
+  }
+
+  .consult-rail.is-mobile-open .rail-row {
+    grid-template-columns: minmax(0, 1fr) 82px;
+    gap: 8px;
+  }
+
+  .consult-rail.is-mobile-open textarea {
+    width: 100%;
+    max-width: 100%;
+    min-height: 84px;
+    padding: 10px;
+  }
+
+  .consult-rail.is-mobile-open .rail-view {
+    gap: 10px;
+  }
+
+  .consult-rail.is-mobile-open .rail-field {
+    gap: 4px;
+  }
+
+  .consult-rail.is-mobile-open .rail-field > span {
+    font-size: 10px;
+  }
+
+  .consult-rail.is-mobile-open .rail-field select,
+  .consult-rail.is-mobile-open .rail-field input {
+    padding: 8px;
+  }
+
+  .consult-rail.is-mobile-open .rail-search-button {
+    min-height: 44px;
+  }
+
+  .consult-main {
+    display: block;
+  }
+
+  .consult-book {
+    min-height: 0;
+  }
+
+  .consult-book .pdf-stage.open-book {
+    grid-template-columns: 1fr;
+    width: 100%;
+    min-height: 0;
+    max-height: calc(100dvh - 190px);
+    align-content: start;
+    overflow-y: auto;
+  }
+
+  .consult-book .open-book .pdf-page {
+    justify-self: stretch;
+  }
+
+  .consult-connections {
+    display: none;
+  }
+
+  .consult-connections.is-mobile-open {
+    position: fixed;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(66px, calc(env(safe-area-inset-bottom) + 58px));
+    left: max(10px, env(safe-area-inset-left));
+    z-index: 30;
+    display: block;
+    max-height: min(76dvh, 680px);
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 18px 48px rgb(0 0 0 / 42%);
+  }
+
+  .consult-connections.is-mobile-open .consult-results {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-panel-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-consult-actions {
+    position: fixed;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    z-index: 40;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+    backdrop-filter: blur(10px);
+  }
+
+  .mobile-consult-actions button {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-alt);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .interpretation-card {
+    cursor: default;
+  }
+
+  .interpretation-preview {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin-top: 10px;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .interpretation-preview::before {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .consult-rail.is-mobile-open,
+  .consult-connections.is-mobile-open {
+    width: calc(100% - 16px);
+  }
+}
+
 .consult-rail .rail-card-summary,
 .consult-rail .rail-hit-text,
 .consult-rail .rail-hit-meta {
@@ -659,6 +844,53 @@
 
 .consult-connections .rail-hit-meta strong {
   color: var(--ink);
+}
+
+@media (max-width: 560px) {
+  .consult-book .book-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 4px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .consult-book .book-footer .page-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 6px;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .consult-book .book-progress {
+    min-width: 62px;
+    justify-content: center;
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .consult-book .book-progress .progress-track {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .consult-book .book-footer {
+    gap: 5px;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .consult-book .book-footer .page-button {
+    font-size: 10px;
+  }
+
+  .consult-book .book-progress {
+    min-width: 56px;
+  }
 }
 
 .consult-connections .rail-hit-meta b {

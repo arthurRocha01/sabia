@@ -39,6 +39,7 @@ export default function ConsultPage() {
   const [findRequest, setFindRequest] = useState<{ id: number; text: string } | undefined>()
   const [errorVersion, setErrorVersion] = useState(0)
   const [errorDismissing, setErrorDismissing] = useState(false)
+  const [mobilePanel, setMobilePanel] = useState<'search' | 'connections' | null>(null)
   const requestedBookId = searchParams.get('book') ?? ''
   const { profile } = useProfile()
   // A precisão é a mesma da leitura: vive no provedor, não nesta tela.
@@ -170,12 +171,17 @@ export default function ConsultPage() {
     setFindRequest((atual) => ({ id: (atual?.id ?? 0) + 1, text: valor }))
   }
 
+  const alternarPainel = (painel: 'search' | 'connections') => {
+    setMobilePanel((atual) => (atual === painel ? null : painel))
+  }
+
   return (
     <>
       <Header books={books} loading={loadingBooks} />
 
       <main className="consult-layout">
         <SearchRail
+          className={mobilePanel === 'search' ? 'is-mobile-open' : ''}
           text={text}
           scope={scope}
           count={k}
@@ -209,12 +215,15 @@ export default function ConsultPage() {
             )}
           </section>
 
-          <section className="consult-connections" aria-label="Conexões encontradas">
+          <section className={`consult-connections${mobilePanel === 'connections' ? ' is-mobile-open' : ''}`} aria-label="Conexões encontradas">
             <div className="connections-title">
               <div>
                 <p className="eyebrow">Conexões</p>
                 <h2>Evidências encontradas</h2>
               </div>
+              <button type="button" className="panel-control mobile-panel-close" onClick={() => setMobilePanel(null)} aria-label="Fechar painel">
+                ×
+              </button>
             </div>
 
             <div className="consult-results">
@@ -223,6 +232,22 @@ export default function ConsultPage() {
           </section>
         </div>
       </main>
+      <div className="mobile-consult-actions" aria-label="Painéis da consulta">
+        <button
+          type="button"
+          onClick={() => alternarPainel('search')}
+          aria-expanded={mobilePanel === 'search'}
+        >
+          Interpretação
+        </button>
+        <button
+          type="button"
+          onClick={() => alternarPainel('connections')}
+          aria-expanded={mobilePanel === 'connections'}
+        >
+          Conexões{hits.length ? ` (${hits.length})` : ''}
+        </button>
+      </div>
     </>
   )
 }

@@ -116,3 +116,32 @@
   width: 100%;
   accent-color: var(--accent);
 }
+
+@media (max-width: 800px) {
+  .panel-large,
+  .sidebar-panel {
+    min-height: 0;
+  }
+
+  .panel-title-row {
+    align-items: flex-start;
+  }
+
+  .book-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .book-actions button,
+  .book-actions a {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel-title-row h1,
+  .sidebar-panel h2 {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+  }
+}

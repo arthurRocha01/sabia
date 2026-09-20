@@ -77,6 +77,7 @@ export default function ReaderPage({
   const [pageCount, setPageCount] = useState(0)
   const [page, setPage] = useState(1)
   const [pageTarget, setPageTarget] = useState('1')
+  const [paginasVisiveis, setPaginasVisiveis] = useState(2)
   const [zoom, setZoom] = useState(ZOOM_INICIAL)
   const [status, setStatus] = useState('carregando o arquivo…')
   const [selectedText, setSelectedText] = useState(externalSelectedText ?? '')
@@ -116,6 +117,24 @@ export default function ReaderPage({
       window.clearTimeout(remocao)
     }
   }, [error, errorVersion])
+
+  useEffect(() => {
+    const atualizarPaginasVisiveis = () => {
+      const largura = embedded && bookStageRef.current
+        ? bookStageRef.current.clientWidth
+        : window.innerWidth
+      setPaginasVisiveis(largura <= 800 ? 1 : 2)
+    }
+    atualizarPaginasVisiveis()
+    window.addEventListener('resize', atualizarPaginasVisiveis)
+    const stage = bookStageRef.current
+    const observer = stage ? new ResizeObserver(atualizarPaginasVisiveis) : null
+    if (stage && observer) observer.observe(stage)
+    return () => {
+      window.removeEventListener('resize', atualizarPaginasVisiveis)
+      observer?.disconnect()
+    }
+  }, [embedded])
 
   useEffect(() => {
     if (!embedded || !bookStageRef.current) return
@@ -352,7 +371,8 @@ export default function ReaderPage({
     })
 
     void (async () => {
-      const paginas = [page, page + 1].filter((numero) => numero <= pageCount)
+      const paginas = Array.from({ length: paginasVisiveis }, (_, index) => page + index)
+        .filter((numero) => numero <= pageCount)
       await Promise.all(paginas.map(async (numero, index) => {
         const canvas = canvasRefs.current[index]
         const layer = layerRefs.current[index]
@@ -362,12 +382,9 @@ export default function ReaderPage({
         const pagina = await documento.getPage(numero)
         if (marca !== desenhoRef.current) return
 
-        const densidade = window.devicePixelRatio || 1
+        const densidade = Math.min(window.devicePixelRatio || 1, 2)
         const larguraBase = pagina.getViewport({ scale: 1 }).width
-        const umaPagina = bookWidth > 0 && (
-          window.matchMedia('(max-width: 800px)').matches || page >= pageCount
-        )
-        const colunas = umaPagina ? 1 : 2
+        const colunas = paginasVisiveis
         const larguraDisponivel = bookWidth > 0
           ? (bookWidth - Math.max(0, colunas - 1)) / colunas
           : 0
@@ -412,7 +429,7 @@ export default function ReaderPage({
     // `documentReady` entra nas dependências porque trocar de livro pode manter
     // página, zoom e contagem iguais: sem ele, o desenho não é refeito e a tela
     // segue mostrando o livro anterior sob o título do novo.
-  }, [documentReady, embedded, page, zoom, pageCount, bookWidth])
+  }, [documentReady, embedded, page, zoom, pageCount, bookWidth, paginasVisiveis])
 
   /** Ao soltar o mouse, o que ficou selecionado vira o trecho a conectar. */
   const capturarSelecao = useCallback(() => {
@@ -425,13 +442,43 @@ export default function ReaderPage({
     }
   }, [])
 
+  useEffect(() => {
+    const atualizarSelecao = () => {
+      const selecao = window.getSelection()
+      const ancora = selecao?.anchorNode
+      const elemento = ancora instanceof Element ? ancora : ancora?.parentElement
+      if (!elemento?.closest('.textLayer') || !selecao?.toString()) return
+      capturarSelecao()
+    }
+    document.addEventListener('selectionchange', atualizarSelecao)
+    return () => document.removeEventListener('selectionchange', atualizarSelecao)
+  }, [capturarSelecao])
+
   const irPara = useCallback((numero: number) => {
     if (!Number.isFinite(numero)) return
-    const destino = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
+    const solicitado = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
+    const destino = paginasVisiveis === 1
+      ? solicitado
+      : Math.min(
+        Math.max(1, Math.floor((solicitado - 1) / paginasVisiveis) * paginasVisiveis + 1),
+        Math.max(1, pageCount),
+      )
     setPage(destino)
     setPageTarget(String(destino))
     if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
-  }, [bookId, pageCount])
+  }, [bookId, pageCount, paginasVisiveis])
+
+  useEffect(() => {
+    if (pageCount === 0 || paginasVisiveis === 1) return
+    const alinhada = Math.min(
+      Math.max(1, Math.floor((page - 1) / paginasVisiveis) * paginasVisiveis + 1),
+      pageCount,
+    )
+    if (alinhada !== page) {
+      setPage(alinhada)
+      setPageTarget(String(alinhada))
+    }
+  }, [page, pageCount, paginasVisiveis])
 
   const buscarConexoes = async () => {
     const texto = selectedText.trim()
@@ -513,6 +560,7 @@ export default function ReaderPage({
             {!embedded ? <BookToolbar
               page={page}
               pageCount={pageCount}
+              pageStep={paginasVisiveis}
               target={pageTarget}
               zoom={zoom}
               zoomStep={PASSO_ZOOM}
@@ -524,7 +572,7 @@ export default function ReaderPage({
               ref={bookStageRef}
               className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}`}
             >
-              {[0, 1].map((index) => (
+              {Array.from({ length: paginasVisiveis }, (_, index) => index).map((index) => (
                 <PdfPage
                   key={`${page}-${zoom}-${index}`}
                   page={page}
@@ -534,14 +582,14 @@ export default function ReaderPage({
                   pageRef={(element) => { pageRefs.current[index] = element }}
                   canvasRef={(element) => { canvasRefs.current[index] = element }}
                   layerRef={(element) => { layerRefs.current[index] = element }}
-                  onMouseUp={capturarSelecao}
+                  onSelect={capturarSelecao}
                 />
               ))}
             </div>
           </div>
 
           {embedded ? (
-            <BookFooter page={page} pageCount={pageCount} onGoTo={irPara} />
+            <BookFooter page={page} pageCount={pageCount} pageStep={paginasVisiveis} onGoTo={irPara} />
           ) : null}
 
           {!embedded ? (

@@ -715,6 +715,66 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  @media (max-width: 800px) {
+    html,
+    body,
+    #root {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .workspace-page {
+      min-height: 100dvh;
+    }
+
+    .workspace-shell {
+      width: min(100% - 24px, 1050px);
+      padding-top: 20px;
+    }
+
+    .workspace-grid,
+    .reader-layout,
+    .consult-layout {
+      gap: 16px;
+    }
+
+    .panel {
+      padding: clamp(16px, 4vw, 24px);
+    }
+
+    .auth-shell {
+      min-height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
+
+    button,
+    input,
+    select,
+    .profile-link,
+    .nav-link {
+      min-height: 44px;
+    }
+
+    .help-tip-button {
+      width: 20px;
+      min-width: 20px;
+      height: 20px;
+      min-height: 20px;
+      flex: 0 0 20px;
+      padding: 0;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .workspace-shell {
+      width: calc(100% - 16px);
+    }
+
+    .brand-tagline {
+      display: none;
+    }
+  }
+
   .topbar {
     flex-wrap: wrap;
   }
