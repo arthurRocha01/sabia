@@ -410,13 +410,6 @@ function ConsultPage() {
       .finally(() => setLoadingBooks(false))
   }, [bookId, setSearchParams])
 
-  const handleBookSelection = (value: string) => {
-    setBookId(value)
-    setSearchParams(value ? { book: value } : {}, { replace: true })
-    setHits([])
-    setCard(null)
-  }
-
   const handleSubmit = async () => {
     const query = text.trim()
     if (!query) {
@@ -478,9 +471,10 @@ function ConsultPage() {
 
               <div className="rail-row">
                 <label className="rail-field rail-field-grow">
-                  <span>Livro de origem</span>
-                  <select value={bookId} disabled={loadingBooks} onChange={(event) => handleBookSelection(event.target.value)}>
-                    {books.map((book) => <option key={book.id} value={book.id}>{book.title}</option>)}
+                  <span>Escopo</span>
+                  <select value={scope} onChange={(event) => setScope(event.target.value as 'others' | 'same')}>
+                    <option value="others">Outros livros</option>
+                    <option value="same">Só este livro</option>
                   </select>
                 </label>
                 <label className="rail-field rail-k-field">
@@ -493,14 +487,6 @@ function ConsultPage() {
                 {loadingConnections ? 'Buscando conexões…' : 'Buscar conexões'}
               </button>
               <p className="rail-hint">Ou selecione um trecho diretamente no livro.</p>
-
-              <label className="rail-field scope-field">
-                <span>Escopo</span>
-                <select value={scope} onChange={(event) => setScope(event.target.value as 'others' | 'same')}>
-                  <option value="others">Outros livros</option>
-                  <option value="same">Só este livro</option>
-                </select>
-              </label>
 
               {error ? <p className="inline-error">{error}</p> : null}
 
