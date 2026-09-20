@@ -10,6 +10,9 @@
   --ink-faint: #7A8698;
   --accent: #5B8DEF;
   --accent-soft: rgba(91, 141, 239, 0.14);
+  --scrollbar-track: #11161D;
+  --scrollbar-thumb: #354252;
+  --scrollbar-thumb-hover: #4A5D76;
   --danger: #EF4444;
   --font-interface: 'Inter', sans-serif;
   --font-book: 'Source Serif 4', Georgia, serif;
@@ -41,6 +44,30 @@ button, input, textarea, select {
 
 button {
   cursor: pointer;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid var(--scrollbar-track);
+  border-radius: 999px;
+  background: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 a {
