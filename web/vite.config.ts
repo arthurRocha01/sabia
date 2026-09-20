@@ -12,6 +12,7 @@ export default defineConfig({
       '^/api/': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        bypass: (request) => request.url?.endsWith('.ts') ? request.url : undefined,
       },
     },
   },

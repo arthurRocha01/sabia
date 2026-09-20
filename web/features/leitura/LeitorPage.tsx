@@ -14,10 +14,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
-import { connect, fetchBookFile, formatError, listBooks } from './api'
-import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from './types'
-import ToolHeader from './ToolHeader'
-import LoadingIndicator from './LoadingIndicator'
+import { formatError } from '../../api/client'
+import { connect } from '../../api/connect'
+import { fetchBookFile, listBooks } from '../../api/books'
+import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from '../../api/types'
+import { useProfile } from '../../app/profile'
+import Cabecalho from '../../ui/Cabecalho'
+import Indicador from '../../ui/Indicador'
+import Citacao from './Citacao'
+import PaginaDoPdf from './PaginaDoPdf'
+import SelecaoDeTrecho from './SelecaoDeTrecho'
 
 // O parsing roda fora da linha principal, num worker; é ele que não deixa a
 // rolagem travar em página grande.
@@ -48,13 +54,14 @@ type TextPosition = {
 
 const normalizarTexto = (texto: string) => texto.replace(/\s+/g, ' ').trim()
 
-export default function ReaderPage({
+export default function LeitorPage({
   embedded = false,
   bookIdOverride,
   externalSelectedText,
   onSelectionChange,
   findRequest,
 }: ReaderPageProps) {
+  const { profile } = useProfile()
   const params = useParams()
   const bookId = bookIdOverride ?? params.bookId
   const navegar = useNavigate()
@@ -435,7 +442,7 @@ export default function ReaderPage({
         scope: 'others',
         book_id: bookId,
         k: 3,
-        // Sem precisão aqui: vale o piso da instalação, aplicado pelo motor.
+        ...(profile ? { min_score: profile.min_score_floor } : {}),
       }
       const resposta = await connect(payload)
       if (marca !== pedidoRef.current) return
@@ -467,7 +474,7 @@ export default function ReaderPage({
 
   return (
     <>
-      {!embedded ? <ToolHeader /> : null}
+      {!embedded ? <Cabecalho books={books} loading={Boolean(status)} /> : null}
 
       <main className={embedded ? 'workspace-layout' : 'reader-layout workspace-grid'}>
         <section className={embedded ? 'book-workspace' : 'panel viewer-panel'}>
@@ -492,7 +499,7 @@ export default function ReaderPage({
           </div>
 
           {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
-          {status ? <LoadingIndicator label={status} /> : null}
+          {status ? <Indicador label={status} /> : null}
 
           <div className="pdf-frame">
             {!embedded ? <div className="pdf-toolbar minimal-pdf-toolbar">
@@ -546,20 +553,17 @@ export default function ReaderPage({
               className={`pdf-stage open-book${paginaRenderizada ? '' : ' is-loading'}`}
             >
               {[0, 1].map((index) => (
-                <div
+                <PaginaDoPdf
                   key={`${page}-${zoom}-${index}`}
-                  ref={(element) => { pageRefs.current[index] = element }}
-                  className={`pdf-page book-page-${index === 0 ? 'left' : 'right'}`}
-                  hidden={index === 1 && page >= pageCount}
-                >
-                  <span className="book-page-number">{page + index}</span>
-                  <canvas ref={(element) => { canvasRefs.current[index] = element }} />
-                  <div
-                    ref={(element) => { layerRefs.current[index] = element }}
-                    className="textLayer"
-                    onMouseUp={capturarSelecao}
-                  />
-                </div>
+                  page={page}
+                  index={index}
+                  pageCount={pageCount}
+                  zoom={zoom}
+                  pageRef={(element) => { pageRefs.current[index] = element }}
+                  canvasRef={(element) => { canvasRefs.current[index] = element }}
+                  layerRef={(element) => { layerRefs.current[index] = element }}
+                  onMouseUp={capturarSelecao}
+                />
               ))}
             </div>
           </div>
@@ -582,23 +586,17 @@ export default function ReaderPage({
             </footer>
           ) : null}
 
-          {!embedded ? <div className="selection-box">
-            <label className="field-group">
-              <span>Trecho selecionado</span>
-              <textarea
-                rows={5}
-                value={selectedText}
-                onChange={(evento) => {
-                  setSelectedText(evento.target.value)
-                  onSelectionChange?.(evento.target.value)
-                }}
-                placeholder="Selecione um trecho no livro ou cole aqui."
-              />
-            </label>
-            <button type="button" className="primary-button" onClick={buscarConexoes} disabled={busy}>
-              {busy ? 'Buscando conexões…' : 'Buscar conexões'}
-            </button>
-          </div> : null}
+          {!embedded ? (
+            <SelecaoDeTrecho
+              text={selectedText}
+              busy={busy}
+              onChange={(text) => {
+                setSelectedText(text)
+                onSelectionChange?.(text)
+              }}
+              onSubmit={buscarConexoes}
+            />
+          ) : null}
         </section>
 
         {!embedded && connectionsOpen ? <aside className="panel sidebar-panel connections-panel-wrapper">
@@ -610,7 +608,7 @@ export default function ReaderPage({
             <button type="button" className="panel-control" onClick={() => setConnectionsOpen(false)} aria-label="Recolher conexões">×</button>
           </div>
 
-          {busy ? <LoadingIndicator label="Buscando conexões" compact /> : null}
+          {busy ? <Indicador label="Buscando conexões" compact /> : null}
 
           <div className="result-stack">
             {hits.length === 0 ? (
@@ -644,11 +642,11 @@ export default function ReaderPage({
                 {card.citations.length > 0 ? (
                   <ul className="citation-list">
                     {card.citations.map((citacao) => (
-                      <li key={`${citacao.book_id}-${citacao.page_index}`}>
-                        <button type="button" className="link-button" onClick={() => abrirCitacao(citacao)}>
-                          {citacao.title} · página {citacao.page_label ?? citacao.page_index + 1}
-                        </button>
-                      </li>
+                      <Citacao
+                        key={`${citacao.book_id}-${citacao.page_index}`}
+                        citation={citacao}
+                        onOpen={abrirCitacao}
+                      />
                     ))}
                   </ul>
                 ) : null}

@@ -1,0 +1,673 @@
+/* Composição da consulta alinhada ao protótipo em localhost:9090. */
+.workspace-shell {
+  width: min(1460px, calc(100% - 48px));
+  padding: 24px 0 34px;
+}
+.tool-header {
+  grid-template-columns: 1fr auto auto;
+  gap: 24px;
+  padding: 0 8px 20px;
+}
+
+.consult-layout {
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 26px;
+  padding-top: 28px;
+}
+
+.consult-main {
+  display: grid;
+  position: relative;
+  min-width: 0;
+  gap: 24px;
+  z-index: 1;
+}
+
+.consult-rail {
+  position: sticky;
+  top: 20px;
+  z-index: 10;
+  gap: 0;
+  min-height: 540px;
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.consult-rail .rail-header {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.consult-rail .rail-header h1 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.consult-rail > .rail-intro,
+.consult-rail > .field-group,
+.consult-rail > .rail-row,
+.consult-rail > .primary-button,
+.consult-rail > .rail-hint,
+.consult-rail > .inline-error,
+.consult-rail > .consult-results {
+  margin-right: 18px;
+  margin-left: 18px;
+}
+
+.consult-rail > .rail-intro {
+  margin-top: 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.consult-rail > .field-group,
+.consult-rail > .rail-row {
+  margin-bottom: 13px;
+}
+
+.consult-rail > .primary-button {
+  width: calc(100% - 36px);
+  min-height: 40px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.consult-rail > .rail-hint {
+  margin-top: 11px;
+  font-size: 11px;
+}
+
+.consult-rail .result-card {
+  border-radius: 7px;
+  border-left: 3px solid var(--accent);
+}
+
+.consult-book {
+  min-height: calc(100vh - 130px);
+}
+
+.consult-connections {
+  min-width: 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.consult-connections .consult-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.consult-connections .rail-hit {
+  min-width: 0;
+}
+
+.consult-book .viewer-panel {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.consult-book .book-toolbar-header {
+  max-width: 1060px;
+  margin: 0 auto 18px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.consult-book .book-toolbar-header h1 {
+  font-size: 24px;
+}
+
+.consult-book .book-toolbar-header select {
+  min-width: 178px;
+}
+
+.consult-book .pdf-frame {
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.consult-book .pdf-stage {
+  max-height: calc(100vh - 215px);
+  min-height: 650px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.consult-book .pdf-stage.open-book {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  overflow: auto;
+  background: var(--surface-strong);
+  border-color: var(--line);
+}
+
+.consult-book .open-book .pdf-page {
+  position: relative;
+  justify-self: center;
+  min-height: 0;
+  margin: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.consult-book .open-book .pdf-page-left {
+  border-radius: 4px 0 0 4px;
+}
+
+.consult-book .open-book .pdf-page-right {
+  border-radius: 0 4px 4px 0;
+}
+
+.consult-book .open-book .book-page-number {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  color: #9aa4b2;
+  font-family: var(--font-data);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.consult-book .open-book .pdf-page canvas {
+  position: relative;
+  z-index: 0;
+}
+
+.consult-book .open-book.is-loading {
+  min-height: 650px;
+}
+
+@media (max-width: 800px) {
+  .consult-book .pdf-stage.open-book {
+    grid-template-columns: 1fr;
+  }
+
+  .consult-book .open-book .pdf-page-right[hidden] {
+    display: none;
+  }
+
+  .consult-book .open-book .pdf-page {
+    border-radius: 4px;
+  }
+
+  .consult-book .open-book::after {
+    display: none;
+  }
+}
+
+@media (max-width: 1050px) {
+  .consult-layout {
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .consult-connections .consult-results {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estrutura 1:1 da consulta do protótipo: rail lateral e livro aberto. */
+.consult-book > .workspace-layout {
+  display: block;
+  padding: 0;
+}
+
+.consult-book .book-workspace {
+  min-width: 0;
+}
+
+.consult-book .book-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1080px;
+  margin: 0 auto 18px;
+  padding: 0 8px;
+  border: 0;
+}
+
+.consult-book .book-toolbar h2 {
+  margin: 6px 0 3px;
+  font-size: 24px;
+  letter-spacing: -0.035em;
+}
+
+.consult-book .book-toolbar .book-author {
+  margin: 0;
+  font-size: 12px;
+}
+
+.consult-book .book-picker {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  min-width: 178px;
+}
+
+.consult-book .book-picker span {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.consult-book .book-picker select {
+  min-height: 38px;
+  padding: 8px 32px 8px 11px;
+  border-radius: 6px;
+  appearance: none;
+  background: var(--surface-alt);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
+  font-size: 12px;
+}
+
+.consult-book .book-picker::after {
+  position: absolute;
+  right: 12px;
+  bottom: 15px;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  pointer-events: none;
+  content: '';
+  transform: rotate(45deg);
+}
+
+.consult-book .book-picker select:hover {
+  border-color: var(--ink-faint);
+}
+
+.consult-book .book-picker select:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgb(91 141 239 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 3%);
+}
+
+.consult-book .pdf-frame {
+  display: block;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.consult-book .pdf-stage.open-book {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: none;
+  min-height: 650px;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  gap: 1px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #293746;
+  border-radius: 8px 12px 12px 8px;
+  background: #17222d;
+  box-shadow:
+    0 18px 34px rgb(0 0 0 / 24%),
+    0 3px 0 #0c141c,
+    inset 0 0 0 3px rgb(255 255 255 / 3%),
+    inset 0 0 22px rgb(0 0 0 / 24%);
+}
+
+.consult-book .open-book .pdf-page {
+  justify-self: center;
+  width: auto !important;
+  min-width: 0;
+  margin: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgb(20 27 34 / 12%), transparent 16%, transparent 84%, rgb(20 27 34 / 8%)),
+    #fff;
+  box-shadow:
+    inset 0 0 18px rgb(32 39 46 / 10%),
+    0 1px 0 rgb(255 255 255 / 85%);
+}
+
+.consult-book .open-book .pdf-page-left {
+  border-right: 1px solid var(--line);
+  border-radius: 7px 0 0 7px;
+  box-shadow:
+    inset -14px 0 20px -18px rgb(17 24 31 / 78%),
+    inset 0 0 18px rgb(32 39 46 / 10%),
+    0 1px 0 rgb(255 255 255 / 85%);
+}
+
+.consult-book .open-book .book-page-number {
+  top: 18px;
+  color: var(--ink-faint);
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+
+.consult-book .open-book .pdf-page canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.consult-book .open-book .pdf-page-right {
+  border-radius: 0 7px 7px 0;
+  box-shadow:
+    inset 14px 0 20px -18px rgb(17 24 31 / 78%),
+    inset 0 0 18px rgb(32 39 46 / 10%),
+    0 1px 0 rgb(255 255 255 / 85%);
+}
+
+.consult-book .open-book::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 3;
+  width: 3px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    rgb(18 25 32 / 8%),
+    rgb(18 25 32 / 34%),
+    rgb(255 255 255 / 48%),
+    rgb(18 25 32 / 34%),
+    rgb(18 25 32 / 8%)
+  );
+  box-shadow: 0 0 8px rgb(10 15 20 / 38%);
+}
+
+.consult-book .open-book::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  z-index: 2;
+  border: 1px solid rgb(255 255 255 / 7%);
+  border-radius: 5px 9px 9px 5px;
+  pointer-events: none;
+}
+
+.consult-book .book-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.consult-book .book-footer .page-button {
+  min-width: 92px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.consult-book .book-progress {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-muted);
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+
+.consult-book .book-progress .progress-track {
+  width: 150px;
+  height: 2px;
+  background: var(--line);
+}
+
+.consult-book .book-progress .progress-track span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.consult-rail .scope-field {
+  margin-top: 12px;
+}
+
+.consult-rail .rail-content {
+  padding: 18px;
+}
+
+.consult-rail .rail-view {
+  display: grid;
+  gap: 13px;
+}
+
+.consult-rail .rail-intro {
+  margin: 0 0 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.consult-rail .rail-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.consult-rail .rail-field > span {
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.consult-rail .rail-field textarea,
+.consult-rail .rail-field select,
+.consult-rail .rail-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.consult-rail .rail-field textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.consult-rail .rail-row {
+  align-items: end;
+  margin: 0;
+}
+
+.consult-rail .rail-search-button {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.consult-rail .rail-hint {
+  margin: -5px 0 0;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.consult-rail .consult-results {
+  margin: 2px 0 0;
+}
+
+.consult-connections .consult-results {
+  margin: 16px 0 0;
+}
+
+.consult-rail .rail-card,
+.consult-rail .rail-hit {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+}
+
+.consult-rail .rail-card {
+  position: relative;
+  border-left: 3px solid var(--accent);
+}
+
+.interpretation-card {
+  --interpretation-preview-gap: 14px;
+  position: relative;
+  cursor: zoom-in;
+  outline: none;
+}
+
+.interpretation-card::after {
+  position: absolute;
+  top: 0;
+  right: calc(var(--interpretation-preview-gap) * -1);
+  bottom: 0;
+  width: var(--interpretation-preview-gap);
+  content: '';
+}
+
+.interpretation-preview {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--interpretation-preview-gap));
+  z-index: 5;
+  width: min(390px, 34vw);
+  max-height: 340px;
+  padding: 16px 18px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-left: 3px solid var(--accent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--surface) 96%, var(--accent));
+  box-shadow:
+    0 18px 36px rgb(0 0 0 / 24%),
+    0 4px 10px rgb(0 0 0 / 18%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-6px) scale(0.98);
+  transform-origin: left center;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.interpretation-preview::before {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-left: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: var(--surface);
+  content: '';
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.interpretation-preview p {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-book);
+  font-size: 15px;
+  line-height: 1.58;
+}
+
+.interpretation-card:hover .interpretation-preview,
+.interpretation-card:focus .interpretation-preview,
+.interpretation-card:focus-within .interpretation-preview,
+.interpretation-preview:focus {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0) scale(1);
+}
+
+.consult-rail .rail-card-summary,
+.consult-rail .rail-hit-text,
+.consult-rail .rail-hit-meta {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.consult-rail .relation-badge {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.consult-rail .rail-hit-meta {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.consult-rail .rail-hit-meta strong {
+  color: var(--ink);
+}
+
+.consult-rail .rail-hit-meta b {
+  float: right;
+  color: var(--accent);
+  font-family: var(--font-data);
+  font-weight: 500;
+}
+
+.consult-rail .rail-hit-text {
+  margin-top: 7px;
+}
+
+.consult-connections .rail-hit {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+}
+
+.consult-connections .rail-hit-meta,
+.consult-connections .rail-hit-text {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.consult-connections .rail-hit-meta {
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.consult-connections .rail-hit-meta strong {
+  color: var(--ink);
+}
+
+.consult-connections .rail-hit-meta b {
+  float: right;
+  color: var(--accent);
+  font-family: var(--font-data);
+  font-weight: 500;
+}
+
+.consult-connections .rail-hit-text {
+  margin-top: 7px;
+}

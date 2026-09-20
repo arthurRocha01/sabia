@@ -1,24 +1,14 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listBooks } from './api'
-import type { Book } from './types'
-import LoadingIndicator from './LoadingIndicator'
+import type { Book } from '../api/types'
+import Indicador from './Indicador'
 
-type ToolHeaderProps = {
+type CabecalhoProps = {
+  books: Book[]
+  loading?: boolean
   mode?: 'profile'
 }
 
-export default function ToolHeader({ mode }: ToolHeaderProps) {
-  const [books, setBooks] = useState<Book[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    void listBooks()
-      .then(setBooks)
-      .catch(() => setBooks([]))
-      .finally(() => setLoading(false))
-  }, [])
-
+export default function Cabecalho({ books, loading = false, mode }: CabecalhoProps) {
   const chunks = books.reduce((total, book) => total + (book.n_chunks ?? 0), 0)
 
   return (
@@ -29,7 +19,7 @@ export default function ToolHeader({ mode }: ToolHeaderProps) {
       </div>
 
       {loading ? (
-        <LoadingIndicator label="Carregando acervo" compact />
+        <Indicador label="Carregando acervo" compact />
       ) : (
         <p className="library-summary">
           {books.length} {books.length === 1 ? 'livro' : 'livros'} · {chunks} trechos
