@@ -397,6 +397,15 @@ function ConsultPage() {
   const requestRef = useRef('')
   const [loadingBooks, setLoadingBooks] = useState(true)
   const [loadingConnections, setLoadingConnections] = useState(false)
+  const requestedBookId = searchParams.get('book') ?? ''
+
+  useEffect(() => {
+    if (requestedBookId && requestedBookId !== bookId) {
+      setBookId(requestedBookId)
+      setHits([])
+      setCard(null)
+    }
+  }, [bookId, requestedBookId])
 
   useEffect(() => {
     setLoadingBooks(true)

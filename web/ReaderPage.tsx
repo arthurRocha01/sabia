@@ -171,10 +171,13 @@ export default function ReaderPage({
           window.matchMedia('(max-width: 800px)').matches || page >= pageCount
         )
         const colunas = umaPagina ? 1 : 2
+        const larguraDisponivel = bookWidth > 0
+          ? (bookWidth - Math.max(0, colunas - 1)) / colunas
+          : 0
         const escalaDeEncaixe = bookWidth > 0
-          ? (bookWidth - Math.max(0, colunas - 1)) / (larguraBase * colunas)
+          ? larguraDisponivel / larguraBase
           : zoom
-        const escala = embedded ? Math.min(zoom, escalaDeEncaixe) : zoom
+        const escala = embedded ? escalaDeEncaixe : zoom
         const vista = pagina.getViewport({ scale: escala })
         const nitida = pagina.getViewport({ scale: escala * densidade })
 
