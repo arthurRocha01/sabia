@@ -242,6 +242,7 @@ def test_profile_reports_the_day_usage(cliente, banco):
     assert resposta.status_code == 200
     assert resposta.json() == {
         "current_line": "estrategia",
+        "card_length": "default",
         "texts_today": 0,
         "daily_limit": 1000,
     }
@@ -344,6 +345,34 @@ def test_without_hits_the_model_is_not_called(cliente, banco, interpretador):
     assert not interpretador.pedidos
 
 
+def test_the_card_length_changes_the_prompt(cliente, banco, interpretador):
+    """O tamanho é valor que a política referencia: muda a redação, não a política."""
+    from engine.domain.policy import POLICY_VERSION
+
+    banco.hits = [_hit()]
+    banco.perfil["card_length"] = "long"
+    cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
+    assert "oito frases" in interpretador.pedidos[0]
+    assert banco.dados("save_query")["card_length"] == "long"
+    assert banco.dados("save_query")["policy_version"] == POLICY_VERSION
+
+
+def test_free_card_length_lets_the_material_decide(cliente, banco, interpretador):
+    banco.hits = [_hit()]
+    banco.perfil["card_length"] = "free"
+    cliente.post("/api/connect", json={"text": "conhecer o inimigo"})
+    assert "tão longa quanto o material pedir" in interpretador.pedidos[0]
+
+
+def test_the_query_records_the_effective_line_and_size(cliente, banco):
+    """Registra-se o que foi usado, não o que foi pedido: o resto veio do perfil."""
+    banco.hits = []
+    cliente.post("/api/connect", json={"text": "conexoes"})
+    registro = banco.dados("save_query")
+    assert registro["line"] == "estrategia"
+    assert registro["card_length"] == "default"
+
+
 def test_the_floor_holds_even_when_the_reader_asks_below(cliente, banco):
     """O piso é da instalação: o pedido só sobe, e o valor usado volta na resposta."""
     banco.hits = []
@@ -395,6 +424,25 @@ def test_profile_updates_the_current_line(cliente, banco):
     assert resposta.status_code == 200
     assert banco.dados("set_current_line")["line"] == "poder"
     assert resposta.json()["current_line"] == "poder"
+    # O tamanho do card não é tocado por uma mudança que não falou dele.
+    assert not banco.chamou("set_card_length")
+
+
+def test_profile_returns_the_default_card_length(cliente):
+    assert cliente.get("/api/profile").json()["card_length"] == "default"
+
+
+def test_profile_updates_the_card_length(cliente, banco):
+    resposta = cliente.patch("/api/profile", json={"card_length": "long"})
+    assert resposta.status_code == 200
+    assert banco.dados("set_card_length")["card_length"] == "long"
+    assert resposta.json()["card_length"] == "long"
+
+
+def test_profile_rejects_a_patch_with_nothing_to_change(cliente):
+    resposta = cliente.patch("/api/profile", json={})
+    assert resposta.status_code == 400
+    assert resposta.json()["code"] == "invalid_input"
 
 
 # ---------------------------------------------------------------------------

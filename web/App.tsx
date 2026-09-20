@@ -350,7 +350,7 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                 const form = event.currentTarget
                 const currentLine = (form.elements.namedItem('current_line') as HTMLInputElement).value
                 try {
-                  setProfile(await updateProfile(currentLine))
+                  setProfile(await updateProfile({ current_line: currentLine }))
                 } catch (caught) {
                   setError(formatError(caught))
                 }
@@ -361,6 +361,39 @@ function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
                 </label>
                 <button type="submit" className="secondary-button">Salvar linha</button>
               </form>
+
+              <div className="field-group card-length">
+                <span>Tamanho da interpretação</span>
+                <div className="segmented" role="group" aria-label="Tamanho da interpretação">
+                  {(
+                    [
+                      ['default', 'Padrão'],
+                      ['long', 'Alto'],
+                      ['free', 'Livre'],
+                    ] as const
+                  ).map(([valor, rotulo]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      className="segment"
+                      aria-pressed={profile.card_length === valor}
+                      onClick={async () => {
+                        try {
+                          setProfile(await updateProfile({ card_length: valor }))
+                          setError('')
+                        } catch (caught) {
+                          setError(formatError(caught))
+                        }
+                      }}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+                <p className="hint">
+                  Padrão até três frases · Alto até oito · Livre deixa o modelo decidir pelo material.
+                </p>
+              </div>
               <div className="metric-row">
                 <span>Textos hoje</span>
                 <strong>{profile.texts_today}</strong>

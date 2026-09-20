@@ -1,4 +1,4 @@
-import type { Book, BooksResponse, ConnectRequest, ConnectResponse, ErrorResponse, Profile } from './types'
+import type { Book, BooksResponse, CardLength, ConnectRequest, ConnectResponse, ErrorResponse, Profile } from './types'
 
 const API_PREFIX = '/api'
 
@@ -85,10 +85,14 @@ export async function getProfile(): Promise<Profile> {
   return apiFetch<Profile>('/profile')
 }
 
-export async function updateProfile(currentLine: string): Promise<Profile> {
+/** Muda só o que foi informado: campo ausente não é tocado no motor. */
+export async function updateProfile(changes: {
+  current_line?: string
+  card_length?: CardLength
+}): Promise<Profile> {
   return apiFetch<Profile>('/profile', {
     method: 'PATCH',
-    body: JSON.stringify({ current_line: currentLine }),
+    body: JSON.stringify(changes),
   })
 }
 

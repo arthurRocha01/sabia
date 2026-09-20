@@ -31,6 +31,7 @@ from engine.api.deps import (
 from engine.api.stores import SqlSearchStore
 from engine.core.errors import ProviderUnavailable, TimedOut
 from engine.domain.interpret import Interpretation, interpret
+from engine.domain.policy import POLICY_VERSION
 from engine.domain.search import SearchResult, find_connections
 from engine.infra import db
 
@@ -42,6 +43,7 @@ def _interpretar(
     resultado: SearchResult,
     *,
     linha: str | None,
+    card_length: str,
     interpretador: InterpretadorDep,
 ) -> Interpretation | None:
     """A interpretação, ou nada quando o modelo não responde.
@@ -50,7 +52,13 @@ def _interpretar(
     resposta. O erro é engolido de propósito, e o card vazio conta o que houve.
     """
     try:
-        return interpret(texto, hits=resultado.hits, interpreter=interpretador, line=linha)
+        return interpret(
+            texto,
+            hits=resultado.hits,
+            interpreter=interpretador,
+            line=linha,
+            card_length=card_length,
+        )
     except (TimedOut, ProviderUnavailable):
         return None
 
@@ -76,6 +84,11 @@ def conectar(
             embedder=embedder,
             store=SqlSearchStore(cursor),
         )
+        # O que fica registrado é o que foi de fato usado: a linha e o tamanho
+        # podem ter vindo do perfil, e o limiar já é o efetivo.
+        perfil = db.get_profile(cursor) or {}
+        linha = pedido.line if pedido.line is not None else perfil.get("current_line")
+        tamanho = perfil.get("card_length") or "default"
         db.save_query(
             cursor,
             owner_id=leitor.id,
@@ -85,17 +98,22 @@ def conectar(
             scope=pedido.scope.value,
             min_score=resultado.min_score,
             k=pedido.k,
-            line=pedido.line,
+            line=linha,
+            policy_version=POLICY_VERSION,
+            card_length=tamanho,
             hits=[
                 {"book_id": hit.book_id, "page_index": hit.page_index, "score": round(hit.score, 4)}
                 for hit in resultado.hits
             ],
         )
-        linha = pedido.line
-        if linha is None:
-            linha = (db.get_profile(cursor) or {}).get("current_line")
 
-    card = _interpretar(pedido.text, resultado, linha=linha, interpretador=interpretador)
+    card = _interpretar(
+        pedido.text,
+        resultado,
+        linha=linha,
+        card_length=tamanho,
+        interpretador=interpretador,
+    )
     return schemas.ConnectResponse(
         hits=[
             schemas.Hit(

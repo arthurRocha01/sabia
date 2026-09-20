@@ -74,7 +74,11 @@ class BancoFalso:
         self.livros: list[dict] = []
         self.livro: dict | None = None
         self.tarefa: dict | None = None
-        self.perfil: dict | None = {"id": LEITOR, "current_line": "estrategia"}
+        self.perfil: dict | None = {
+            "id": LEITOR,
+            "current_line": "estrategia",
+            "card_length": "default",
+        }
         self.hits: list[dict] = []
         self.arquivo_existente: str | None = None
 
@@ -91,7 +95,11 @@ class BancoFalso:
 
     def set_current_line(self, _cursor, line):
         self._anota("set_current_line", line=line)
-        self.perfil = {"id": LEITOR, "current_line": line}
+        self.perfil = {**(self.perfil or {}), "id": LEITOR, "current_line": line}
+
+    def set_card_length(self, _cursor, card_length):
+        self._anota("set_card_length", card_length=card_length)
+        self.perfil = {**(self.perfil or {}), "id": LEITOR, "card_length": card_length}
 
     def get_book(self, _cursor, book_id):
         self._anota("get_book", book_id=book_id)
@@ -204,7 +212,7 @@ def banco(monkeypatch) -> BancoFalso:
         "list_books", "get_profile", "set_current_line", "get_book", "update_book",
         "delete_book", "find_book", "create_book", "create_job", "get_job",
         "start_job", "advance_job", "finish_book", "fail_job", "fail_book",
-        "texts_embedded_today", "save_query", "search_chunks",
+        "texts_embedded_today", "save_query", "search_chunks", "set_card_length",
     ):
         monkeypatch.setattr(db, nome, getattr(falso, nome))
     return falso

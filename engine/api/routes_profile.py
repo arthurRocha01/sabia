@@ -1,8 +1,10 @@
 """Rotas do perfil.
 
-O perfil guarda a linha de aprendizado corrente — o valor que vale como padrão
-para novos livros. Ela é texto livre do leitor: o sistema não sugere, não limita
-e não pré-define linha nenhuma.
+O perfil guarda os **valores correntes** do leitor: a linha de aprendizado, que
+vale como padrão para novos livros, e o tamanho do card, que a política
+referencia ao montar o pedido ao modelo. A linha é texto livre — o sistema não
+sugere, não limita e não pré-define nenhuma. O tamanho é escolha fechada, entre
+os três que a política conhece.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ from fastapi import APIRouter
 
 from engine.api import schemas
 from engine.api.deps import ConexaoDep, ConfigDep, ReaderDep
+from engine.core.errors import InvalidInput
 from engine.infra import db
 
 router = APIRouter(prefix="/api", tags=["perfil"])
@@ -20,6 +23,7 @@ def _ficha(cursor, leitor, settings) -> schemas.Profile:
     perfil = db.get_profile(cursor) or {}
     return schemas.Profile(
         current_line=perfil.get("current_line"),
+        card_length=perfil.get("card_length") or schemas.CardLength.default,
         texts_today=db.texts_embedded_today(cursor, leitor.id),
         daily_limit=settings.quota_daily_texts,
     )
@@ -35,7 +39,12 @@ def ler(leitor: ReaderDep, conexao: ConexaoDep, settings: ConfigDep) -> schemas.
 def atualizar(
     mudanca: schemas.ProfileUpdate, leitor: ReaderDep, conexao: ConexaoDep, settings: ConfigDep
 ) -> schemas.Profile:
-    """Troca a linha corrente. Nenhum vetor é tocado, nada é re-ingido."""
+    """Troca o que o leitor mudou. Nenhum vetor é tocado, nada é re-ingido."""
+    if mudanca.current_line is None and mudanca.card_length is None:
+        raise InvalidInput("nada a mudar: informe a linha ou o tamanho do card")
     with conexao.cursor() as cursor:
-        db.set_current_line(cursor, mudanca.current_line.strip())
+        if mudanca.current_line is not None:
+            db.set_current_line(cursor, mudanca.current_line.strip())
+        if mudanca.card_length is not None:
+            db.set_card_length(cursor, mudanca.card_length.value)
         return _ficha(cursor, leitor, settings)

@@ -206,11 +206,11 @@ def fail_book(cur: psycopg.Cursor, *, book_id: str) -> None:
 # ---------------------------------------------------------------------------
 def get_profile(cur: psycopg.Cursor) -> dict | None:
     """Perfil de quem está conectado. O dono vem da política, não do código."""
-    cur.execute("select id, current_line from public.profiles limit 1")
+    cur.execute("select id, current_line, card_length from public.profiles limit 1")
     linha = cur.fetchone()
     if not linha:
         return None
-    return {"id": str(linha[0]), "current_line": linha[1]}
+    return {"id": str(linha[0]), "current_line": linha[1], "card_length": linha[2]}
 
 
 def set_current_line(cur: psycopg.Cursor, line: str) -> None:
@@ -220,6 +220,15 @@ def set_current_line(cur: psycopg.Cursor, line: str) -> None:
     re-ingerido.
     """
     cur.execute("update public.profiles set current_line = %s", (line,))
+
+
+def set_card_length(cur: psycopg.Cursor, card_length: str) -> None:
+    """Grava o tamanho do card escolhido pelo leitor.
+
+    É valor que a política referencia, não texto de política: mudar aqui não
+    muda a redação nem a versão, só o tamanho que o modelo recebe.
+    """
+    cur.execute("update public.profiles set card_length = %s", (card_length,))
 
 
 # ---------------------------------------------------------------------------
@@ -348,6 +357,8 @@ def save_query(
     min_score: float,
     k: int,
     line: str | None,
+    policy_version: str,
+    card_length: str,
     hits: Iterable[dict],
 ) -> None:
     """Registra a consulta e o que ela devolveu.
@@ -358,8 +369,9 @@ def save_query(
     cur.execute(
         """
         insert into public.queries
-            (owner_id, book_id, query_text, word_count, scope, min_score, k, line, hits)
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            (owner_id, book_id, query_text, word_count, scope, min_score, k, line,
+             policy_version, card_length, hits)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
         """,
         (
             owner_id,
@@ -370,6 +382,8 @@ def save_query(
             min_score,
             k,
             line,
+            policy_version,
+            card_length,
             json.dumps(list(hits), ensure_ascii=False),
         ),
     )

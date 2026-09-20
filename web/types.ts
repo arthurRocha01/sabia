@@ -70,8 +70,12 @@ export interface Citation {
 /** O card: o que a interpretação acrescenta à evidência, na mesma resposta. */
 export type InterpretationResponse = Pick<ConnectResponse, 'card' | 'relation' | 'citations'>
 
+/** Tamanho do card: valor corrente do perfil, que a política do motor referencia. */
+export type CardLength = 'default' | 'long' | 'free'
+
 export interface Profile {
   current_line: string | null
+  card_length: CardLength
   texts_today: number
   daily_limit: number
 }

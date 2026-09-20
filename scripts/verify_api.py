@@ -150,6 +150,16 @@ def main() -> int:
             perfil.status_code == 200 and "current_line" in perfil.json(),
         )
         troca = cliente.patch("/api/profile", json={"current_line": "estrategia"})
+        confere(
+            "o tamanho do card começa no padrão",
+            cliente.get("/api/profile").json()["card_length"] == "default",
+        )
+        tamanho = cliente.patch("/api/profile", json={"card_length": "long"})
+        confere("o tamanho do card é atualizável", tamanho.json()["card_length"] == "long")
+        confere(
+            "mudar o tamanho não toca a linha corrente",
+            tamanho.json()["current_line"] == "estrategia",
+        )
         confere("a linha corrente é atualizável", troca.status_code == 200)
 
         print("\n=== acervo ===")
