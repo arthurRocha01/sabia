@@ -9,6 +9,7 @@ import LoadingIndicator from './LoadingIndicator'
 
 const storageKey = 'sabia_session'
 const tokenKey = 'sabia_token'
+const consultationStoragePrefix = 'sabia_last_consultation:'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -20,6 +21,15 @@ type ProcessState = {
   status: string
   processed: number
   total: number | null
+}
+
+type SavedConsultation = {
+  text: string
+  scope: 'others' | 'same'
+  k: number
+  minScore: number
+  hits: ConnectResponse['hits']
+  card: InterpretationResponse | null
 }
 
 function App() {
@@ -498,6 +508,32 @@ function ConsultPage() {
   }, [bookId, requestedBookId])
 
   useEffect(() => {
+    if (!bookId) return
+
+    const raw = localStorage.getItem(`${consultationStoragePrefix}${bookId}`)
+    if (!raw) {
+      setText('')
+      setHits([])
+      setCard(null)
+      return
+    }
+
+    try {
+      const saved = JSON.parse(raw) as SavedConsultation
+      setText(typeof saved.text === 'string' ? saved.text : '')
+      setScope(saved.scope === 'same' ? 'same' : 'others')
+      setK(Math.min(10, Math.max(1, Number(saved.k) || 1)))
+      setMinScore(typeof saved.minScore === 'number' ? saved.minScore : null)
+      setHits(Array.isArray(saved.hits) ? saved.hits : [])
+      setCard(saved.card && typeof saved.card.card === 'string' ? saved.card : null)
+    } catch {
+      setText('')
+      setHits([])
+      setCard(null)
+    }
+  }, [bookId])
+
+  useEffect(() => {
     void getProfile()
       .then((atual) => {
         setProfile(atual)
@@ -548,6 +584,18 @@ function ConsultPage() {
       setCard(resposta)
       // O valor efetivo volta do motor: subir nunca fica só na tela.
       setMinScore(resposta.min_score)
+      localStorage.setItem(`${consultationStoragePrefix}${bookId}`, JSON.stringify({
+        text: query,
+        scope,
+        k,
+        minScore: resposta.min_score,
+        hits: resposta.hits,
+        card: resposta.card === null ? null : {
+          card: resposta.card,
+          relation: resposta.relation,
+          citations: resposta.citations,
+        },
+      } satisfies SavedConsultation))
       setError('')
     } catch (caught) {
       if (requestRef.current === requestKey) setError(formatError(caught))
