@@ -19,3 +19,6 @@ dist/
 # sistema
 .DS_Store
 Thumbs.db
+
+# ide
+.idea/
