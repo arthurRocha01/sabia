@@ -198,7 +198,7 @@ def main() -> int:
                     "motor",
                     [
                         str(RAIZ / ".venv" / "bin" / "uvicorn"),
-                        "api.index:app",
+                        "index:app",
                         "--reload",
                         "--port",
                         str(ENGINE_PORT),

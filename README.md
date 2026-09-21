@@ -112,8 +112,8 @@ Notas que mordem:
 
 Cliente em React com pdf.js, motor em FastAPI, Postgres com pgvector, embeddings pelo Gemini e interpretação pela DeepSeek.
 
+    index.py      ponto de entrada da função na plataforma (a raiz, não `api/`)
     prototype/    design aprovado em HTML/CSS/JS (referência visual; tags view-v1 e view-v2)
-    api/          ponto de entrada da função na plataforma (api/index.py)
     engine/       o motor
       core/       configuração e erros tipados — não conhece ninguém
       infra/      o mundo de fora: banco, PDF, embeddings, modelo, arquivos, token

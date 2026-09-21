@@ -2,16 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["gru1"],
   "buildCommand": "cd web && npm ci && npm run build",
-  "outputDirectory": "web/dist",
   "functions": {
-    "api/index.py": {
+    "index.py": {
       "maxDuration": 300
     }
-  },
-  "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }
