@@ -12,7 +12,11 @@ export default defineConfig({
       '^/api/': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        bypass: (request) => request.url?.endsWith('.ts') ? request.url : undefined,
+        // O HMR reanexa `?t=...` ao pedir o módulo de novo: sem tirar a query
+        // antes de testar, o pedido do próprio cliente ia para o motor e
+        // voltava 404 — e a tela ficava em branco.
+        bypass: (request) =>
+          request.url?.split('?')[0].endsWith('.ts') ? request.url : undefined,
       },
     },
   },
