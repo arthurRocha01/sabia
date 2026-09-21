@@ -142,6 +142,27 @@ cd web && npx vitest run                         # cliente
 
 O `verify_api.py` cria contas de teste, entra como o leitor entraria, exercita todas as rotas e apaga tudo no fim — é o que transforma "configurado" em "verificado". Ele consome cota, então é verificação pontual, não rotina.
 
+## Desenvolvedores
+
+Para quem desenvolve em **WSL** — ou em Linux e macOS, que se comportam do mesmo jeito. O script de desenvolvimento é POSIX, e o WSL é o ambiente em que o projeto é feito.
+
+`scripts/dev.py` sobe motor e cliente e derruba os dois juntos:
+
+```bash
+python scripts/dev.py             # motor em :8000 e cliente em :5173
+python scripts/dev.py --engine    # só o motor
+python scripts/dev.py --client    # só o cliente
+python scripts/dev.py --no-lan    # sem tentar expor o cliente na rede
+```
+
+Cada filho nasce numa sessão própria e é morto pelo **grupo** de processos: `npm run dev` e o `uvicorn --reload` criam processos netos, e encerrar só o processo direto deixaria os netos segurando as portas. Se um dos dois não conseguir subir, o outro é derrubado junto — porta aberta por processo órfão é o defeito que o script existe para evitar.
+
+**A exposição na rede local é opcional e de quem desenvolve**, e ela existe por causa do WSL: o app roda dentro dele, e a porta só fica alcançável pelo celular na mesma rede depois de uma regra no firewall do Windows. Por isso a exposição depende de um comando `expose` no `PATH`, que **não faz parte deste repositório** — no ambiente do autor, é um atalho para essa regra. Sem o comando, o script avisa numa linha e segue: o app fica só nesta máquina. Se houver outro `expose` no `PATH`, é ele que o script chama, e a falha aparece como aviso, sem interromper nada.
+
+**Em Windows nativo o script não roda:** `os.killpg` e `os.getpgid` são POSIX, então o Ctrl+C não derrubaria os processos netos. Rode pelo WSL.
+
+Para contribuir: a dependência aponta **para dentro** nas camadas do motor (`api` → `domain` → `core`), os identificadores são em inglês, e comentários, docstrings e tudo o que o leitor vê ficam em português.
+
 ## Deploy
 
 Um projeto só, na Vercel: o cliente na raiz e o motor sob `/api`, na mesma região do banco (`gru1`, ao lado do `sa-east-1`). O `vercel.json` descreve as duas coisas, incluindo a *rewrite* que faz as rotas do cliente existirem — sem ela, abrir `/perfil` direto daria 404, porque quem resolve essas rotas é o aplicativo, no navegador.
