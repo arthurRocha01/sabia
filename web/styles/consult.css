@@ -794,22 +794,9 @@
     cursor: default;
   }
 
+  /* No celular a lupa não existe: o card já é legível, e a prévia repetia a
+     mesma interpretação logo abaixo dele. */
   .interpretation-preview {
-    position: static;
-    width: auto;
-    max-height: none;
-    margin-top: 10px;
-    padding: 0;
-    overflow: visible;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
-  }
-
-  .interpretation-preview::before {
     display: none;
   }
 }
