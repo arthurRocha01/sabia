@@ -177,6 +177,19 @@ export default function ConsultPage() {
    * página. O sentinela marca esse ponto: enquanto ele está fora da tela, a
    * linha fica recolhida (o CSS cuida disso) e a página pertence ao livro.
    */
+  // Com uma folha aberta, o que rola é só ela: o toque que começa fora do painel
+  // e da faixa não move a tela de consulta.
+  useEffect(() => {
+    if (!mobilePanel) return
+    const dentro = (alvo: EventTarget | null) =>
+      alvo instanceof Element && !!alvo.closest('.consult-rail, .consult-connections, .mobile-consult-actions')
+    const segurar = (evento: TouchEvent) => {
+      if (!dentro(evento.target)) evento.preventDefault()
+    }
+    document.addEventListener('touchmove', segurar, { passive: false })
+    return () => document.removeEventListener('touchmove', segurar)
+  }, [mobilePanel])
+
   useEffect(() => {
     const sentinela = document.querySelector('.mobile-consult-end-sentinel')
     const linha = document.querySelector('.mobile-consult-actions')
@@ -248,9 +261,6 @@ export default function ConsultPage() {
                 <p className="eyebrow">Conexões</p>
                 <h2>Evidências encontradas</h2>
               </div>
-              <button type="button" className="panel-control mobile-panel-close" onClick={() => setMobilePanel(null)} aria-label="Fechar painel">
-                ×
-              </button>
             </div>
 
             <div className="consult-results">

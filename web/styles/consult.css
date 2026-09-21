@@ -725,20 +725,25 @@
     display: none;
   }
 
+  /* Mesma receita da folha de interpretação: centrada, mesma largura, mesma
+     altura máxima. Antes cada uma tinha o seu posicionamento e ficavam
+     desalinhadas. */
   .consult-connections.is-mobile-open {
     position: fixed;
-    right: max(10px, env(safe-area-inset-right));
     bottom: max(84px, calc(env(safe-area-inset-bottom) + 76px));
-    left: max(10px, env(safe-area-inset-left));
+    left: 50%;
+    width: min(380px, calc(100% - 24px));
+    max-width: 380px;
     z-index: 30;
     display: block;
-    max-height: min(calc(76dvh - 56px), 620px);
+    max-height: calc(100dvh - 130px);
     overflow: auto;
     padding: 16px;
     border: 1px solid var(--line);
     border-radius: 14px;
     background: var(--surface);
     box-shadow: 0 18px 48px rgb(0 0 0 / 42%);
+    transform: translateX(-50%);
   }
 
   .consult-connections.is-mobile-open .consult-results {
@@ -748,6 +753,76 @@
   .mobile-panel-close {
     min-width: 44px;
     min-height: 44px;
+  }
+
+  /* Com uma folha aberta, a faixa de abas deixa de flutuar no fim do fluxo e
+     vira doca: fica presa no rodapé, e a folha aparece logo acima dela -- nunca
+     sobre o livro, nem enquanto o livro ainda carrega e a faixa está no topo. */
+  body:has(.consult-rail.is-mobile-open) .mobile-consult-actions,
+  body:has(.consult-connections.is-mobile-open) .mobile-consult-actions {
+    /* fixed, e não sticky: a folha é fixed e precisa dividir o sistema de
+       coordenadas com a doca. Com a doca no fluxo (sticky), a folha ficava
+       ancorada numa referência mais curta -- os 48px da área segura -- e sobrava
+       um pedaço do livro entre as duas. */
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 31;
+    height: calc(var(--dock-height) + env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    margin-top: 0;
+    box-sizing: border-box;
+    padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  /* A doca saiu do fluxo, então o espaço dela volta como respiro no fim da
+     consulta: a altura da página não muda quando a folha abre. */
+  body:has(.consult-rail.is-mobile-open) .consult-layout,
+  body:has(.consult-connections.is-mobile-open) .consult-layout {
+    padding-bottom: calc(var(--dock-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* A folha encosta no topo da doca: sem faixa de livro entre as duas. O
+     `top: auto` importa: a folha de interpretacao e uma barra lateral fixa no
+     desktop (`position: sticky; top: 20px`), e com top e bottom ao mesmo tempo --
+     mais o max-height -- o navegador posiciona pelo topo. Era isso que deixava
+     os 48px sobrando entre a folha e a doca. */
+  body:has(.consult-rail.is-mobile-open) .consult-rail.is-mobile-open,
+  body:has(.consult-connections.is-mobile-open) .consult-connections.is-mobile-open {
+    top: auto;
+    bottom: calc(var(--dock-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* E o que está atrás congela. Sem mexer em overflow: trocar overflow de um
+     contêiner já rolado devolve a rolagem para zero -- era isso que "recarregava"
+     a tela ao abrir. A trava é por overscroll e pelo toque, e a rolagem de fundo
+     é contida no JS, que ignora o que começa dentro da folha. */
+  body:has(.consult-rail.is-mobile-open),
+  body:has(.consult-connections.is-mobile-open) {
+    overscroll-behavior: none;
+  }
+
+  body:has(.consult-rail.is-mobile-open) .consult-book,
+  body:has(.consult-rail.is-mobile-open) .consult-book *,
+  body:has(.consult-connections.is-mobile-open) .consult-book,
+  body:has(.consult-connections.is-mobile-open) .consult-book * {
+    touch-action: none;
+  }
+
+  .consult-rail.is-mobile-open,
+  .consult-connections.is-mobile-open {
+    overscroll-behavior: contain;
+  }
+
+  :root {
+    --dock-height: 62px;
   }
 
   .mobile-consult-actions {
