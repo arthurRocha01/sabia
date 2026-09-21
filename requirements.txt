@@ -7,6 +7,12 @@
 # aqui: a função tem teto de tamanho na plataforma, e o servidor de
 # desenvolvimento o runtime da Vercel não usa — ela roda ASGI direto. Estão em
 # `requirements-dev.txt`.
+#
+# Esta é a lista única de dependências do motor, e por isso não há
+# `pyproject.toml`: ao encontrá-lo, o build da Vercel passa a instalar com
+# `uv lock`, que exige uma tabela `[project]` — e duas listas para manter em
+# acordo seriam mais uma coisa para esquecer. A configuração de ruff e de
+# pytest mora em `ruff.toml` e `pytest.ini`.
 
 fastapi
 pymupdf==1.28.2
