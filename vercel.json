@@ -1,10 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["gru1"],
-  "buildCommand": "cd web && npm ci && npm run build",
-  "functions": {
-    "index.py": {
-      "maxDuration": 300
-    }
-  }
+  "buildCommand": "cd web && npm ci && npm run build"
 }
