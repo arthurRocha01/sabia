@@ -7,11 +7,12 @@
 
 Ctrl+C derruba os dois — e fecha a porta que tiver sido exposta na rede.
 
-Quando o cliente sobe, a porta do Vite é exposta na rede local pelo atalho
-`expose` (ver wsl-expose.ps1), para o celular na mesma Wi-Fi alcançar o app.
-A exposição é fechada junto: abrir uma porta e deixá-la aberta depois seria
-pior que não abrir. Sem o atalho instalado, ou fora do WSL, o script avisa e
-segue — nada aqui é obrigatório.
+Quando o cliente sobe, a porta do Vite é exposta na rede local por um comando
+`expose` encontrado no PATH — no WSL do autor, um atalho para a regra de
+firewall, para o celular na mesma Wi-Fi alcançar o app. Esse comando não faz
+parte deste repositório: sem ele, o script avisa e segue, e o app fica só
+nesta máquina. A exposição é fechada junto: abrir uma porta e deixá-la aberta
+depois seria pior que não abrir.
 
 O cuidado que justifica este script existir: `npm run dev` cria o servidor do
 Vite como processo **filho**, e o `uvicorn --reload` cria o próprio
@@ -37,7 +38,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 CLIENTE = RAIZ / "web"
 ENGINE_PORT = 8000
 CLIENT_PORT = 5173
-LAN_TOOL = shutil.which("expose")  # atalho do WSL que expõe a porta na rede local
+LAN_TOOL = shutil.which("expose")  # comando de quem desenvolve, se houver: expõe a porta na rede
 
 AZUL = "\033[38;5;68m"
 VERDE = "\033[38;5;71m"
@@ -188,30 +189,36 @@ def main() -> int:
             expor = True
 
     processos: list[subprocess.Popen] = []
-    if not so_cliente:
-        processos.append(
-            _subir(
-                "motor",
-                [
-                    str(RAIZ / ".venv" / "bin" / "uvicorn"),
-                    "api.index:app",
-                    "--reload",
-                    "--port",
-                    str(ENGINE_PORT),
-                ],
-                RAIZ,
-                AZUL,
+    # Se o segundo processo não subir, o primeiro não pode ficar órfão segurando
+    # a porta — é o mesmo cuidado que o grupo de processos existe para garantir.
+    try:
+        if not so_cliente:
+            processos.append(
+                _subir(
+                    "motor",
+                    [
+                        str(RAIZ / ".venv" / "bin" / "uvicorn"),
+                        "api.index:app",
+                        "--reload",
+                        "--port",
+                        str(ENGINE_PORT),
+                    ],
+                    RAIZ,
+                    AZUL,
+                )
             )
-        )
-    if not so_motor:
-        processos.append(
-            _subir(
-                "cliente",
-                ["npm", "run", "dev", "--", "--port", str(CLIENT_PORT)],
-                CLIENTE,
-                VERDE,
+        if not so_motor:
+            processos.append(
+                _subir(
+                    "cliente",
+                    ["npm", "run", "dev", "--", "--port", str(CLIENT_PORT)],
+                    CLIENTE,
+                    VERDE,
+                )
             )
-        )
+    except OSError as erro:
+        _derrubar(processos)
+        raise SystemExit(f"não foi possível subir um dos processos: {erro}") from erro
 
     print(_pinta(f"\n  motor   http://localhost:{ENGINE_PORT}", AZUL))
     if not so_motor:
