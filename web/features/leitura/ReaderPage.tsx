@@ -409,20 +409,23 @@ export default function ReaderPage({
     if (!documento || pageCount === 0) return
 
     const marca = ++desenhoRef.current
+    // Quem ja estava rolando continua onde estava: a posicao e anotada antes e
+    // devolvida depois, para o desenho de uma pagina nao empurrar o leitor.
+    const rolados = [...document.querySelectorAll('*')]
+      .filter((elemento) => elemento.scrollTop > 0)
+      .map((elemento) => [elemento, elemento.scrollTop] as const)
     setPaginaRenderizada(false)
     canvasRefs.current.forEach((canvas, index) => {
       const layer = layerRefs.current[index]
       const pageElement = pageRefs.current[index]
       if (layer) layer.replaceChildren()
+      // Nada de encolher o desenho. Zerar a altura aqui fazia o conteudo sumir
+      // por um instante a cada virada de pagina, e o navegador travava a
+      // rolagem no topo -- era o "recarregar a tela". O canvas e limpo no
+      // tamanho que ja tem, e o layout fica parado.
       if (canvas) {
-        canvas.width = 1
-        canvas.height = 1
-        canvas.style.width = '1px'
-        canvas.style.height = '1px'
-      }
-      if (pageElement) {
-        pageElement.style.width = '1px'
-        pageElement.style.height = '1px'
+        const contexto = canvas.getContext('2d')
+        contexto?.clearRect(0, 0, canvas.width, canvas.height)
       }
     })
 
@@ -485,6 +488,13 @@ export default function ReaderPage({
       if (marca === desenhoRef.current) {
         setPaginaRenderizada(true)
         setPaginasComTexto([...comTexto])
+        for (const [elemento, posicao] of rolados) elemento.scrollTop = posicao
+        window.requestAnimationFrame(() => {
+          if (marca !== desenhoRef.current) return
+          for (const [elemento, posicao] of rolados) {
+            if (elemento.scrollTop !== posicao) elemento.scrollTop = posicao
+          }
+        })
       }
     })().catch((caught) => {
       if (marca === desenhoRef.current) mostrarErro(formatError(caught))
@@ -959,9 +969,11 @@ export default function ReaderPage({
                   }}
                 />
               ) : null}
+              {/* Sem `key` por página: remontar substituía o nó da página a cada
+                  virada, e com ele se ia a rolagem. Quem redesenha é o efeito,
+                  que depende de page, zoom e do livro aberto. */}
               {Array.from({ length: paginasVisiveis }, (_, index) => index).map((index) => (
                 <PdfPage
-                  key={`${page}-${zoom}-${index}`}
                   page={page}
                   index={index}
                   pageCount={pageCount}
