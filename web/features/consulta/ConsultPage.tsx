@@ -1,25 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from '../../api/types'
+import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse, Scope } from '../../api/types'
 import { formatError } from '../../api/client'
 import { connect } from '../../api/connect'
 import { listBooks } from '../../api/books'
-import { useProfile } from '../../app/profile'
+import { consultationKey } from '../../storage'
 import { usePrecision } from '../../app/precision'
 import Header from '../../ui/Header'
 import ReaderPage from '../leitura/ReaderPage'
 import ConnectionList from './ConnectionList'
 import SearchRail from './SearchRail'
 
-const consultationStoragePrefix = 'sabia_last_consultation:'
-
 type SavedConsultation = {
   text: string
-  scope: 'others' | 'same'
+  scope: Scope
   k: number
   minScore: number
   hits: ConnectResponse['hits']
   card: InterpretationResponse | null
+  /** Diz se a consulta gravada foi cortada nas 120 palavras. */
+  truncated?: boolean
 }
 
 /** A consulta: o rail de busca, o livro aberto e as evidências abaixo. */
@@ -28,7 +28,7 @@ export default function ConsultPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [bookId, setBookId] = useState(() => searchParams.get('book') ?? '')
   const [text, setText] = useState('')
-  const [scope, setScope] = useState<'others' | 'same'>('others')
+  const [scope, setScope] = useState<Scope>('others')
   const [k, setK] = useState(3)
   const [error, setError] = useState('')
   const [hits, setHits] = useState<ConnectResponse['hits']>([])
@@ -41,9 +41,10 @@ export default function ConsultPage() {
   const [errorDismissing, setErrorDismissing] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<'search' | 'connections' | null>(null)
   const [readingSelection, setReadingSelection] = useState(false)
+  const [truncated, setTruncated] = useState(false)
   const requestedBookId = searchParams.get('book') ?? ''
-  const { profile } = useProfile()
-  // A precisão é a mesma da leitura: vive no provedor, não nesta tela.
+  // A precisão é a mesma da leitura: vive no provedor, não nesta tela — e o piso
+  // da instalação vem dele. Ler o perfil de novo aqui seria uma segunda fonte.
   const { minScore, setMinScore, floor } = usePrecision()
 
   const mostrarErro = (mensagem: string) => {
@@ -73,11 +74,12 @@ export default function ConsultPage() {
   useEffect(() => {
     if (!bookId) return
 
-    const raw = localStorage.getItem(`${consultationStoragePrefix}${bookId}`)
+    const raw = localStorage.getItem(consultationKey(bookId))
     if (!raw) {
       setText('')
       setHits([])
       setCard(null)
+      setTruncated(false)
       return
     }
 
@@ -89,13 +91,17 @@ export default function ConsultPage() {
       setMinScore(typeof saved.minScore === 'number' ? saved.minScore : null)
       setHits(Array.isArray(saved.hits) ? saved.hits : [])
       setCard(saved.card && typeof saved.card.card === 'string' ? saved.card : null)
+      setTruncated(saved.truncated === true)
     } catch {
       setText('')
       setHits([])
       setCard(null)
+      setTruncated(false)
     }
   }, [bookId, setMinScore])
 
+  // O acervo é lido uma vez. Trocar de livro é assunto do estado: com `bookId`
+  // nas dependências, cada troca rebaixava a lista inteira do servidor.
   useEffect(() => {
     setLoadingBooks(true)
     void listBooks()
@@ -108,7 +114,8 @@ export default function ConsultPage() {
       })
       .catch((caught) => mostrarErro(formatError(caught)))
       .finally(() => setLoadingBooks(false))
-  }, [bookId, setSearchParams])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async () => {
     const query = text.trim()
@@ -131,6 +138,7 @@ export default function ConsultPage() {
     }
     const requestKey = `${query}|${scope}|${bookId}|${k}|${minScore}`
     requestRef.current = requestKey
+    setTruncated(false)
     setLoadingConnections(true)
 
     try {
@@ -138,15 +146,17 @@ export default function ConsultPage() {
       if (requestRef.current !== requestKey) return
       setHits(resposta.hits)
       setCard(resposta)
+      setTruncated(resposta.truncated)
       // O valor efetivo volta do motor: subir nunca fica só na tela.
       setMinScore(resposta.min_score)
       localStorage.setItem(
-        `${consultationStoragePrefix}${bookId}`,
+        consultationKey(bookId),
         JSON.stringify({
           text: query,
           scope,
           k,
           minScore: resposta.min_score,
+          truncated: resposta.truncated,
           hits: resposta.hits,
           card:
             resposta.card === null
@@ -224,7 +234,8 @@ export default function ConsultPage() {
           scope={scope}
           count={k}
           precision={minScore}
-          floor={profile?.min_score_floor ?? floor}
+          floor={floor}
+          truncated={truncated}
           card={card}
           error={error}
           errorVersion={errorVersion}

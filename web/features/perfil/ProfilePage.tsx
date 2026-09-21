@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Book, JobProgress } from '../../api/types'
+import type { Book } from '../../api/types'
 import { formatError } from '../../api/client'
 import { deleteBook, getJob, listBooks, uploadBook } from '../../api/books'
 import { useProfile } from '../../app/profile'
@@ -12,6 +12,9 @@ import BookList from './BookList'
 import InterpretationProfile from './InterpretationProfile'
 import type { TaskState } from './types'
 
+/** De quanto em quanto tempo a tela pergunta pelo andamento da ingestão. */
+const INTERVALO_DA_TAREFA = 3000
+
 /** O perfil: o acervo, o envio, e os valores correntes do leitor. */
 export default function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
   const navigate = useNavigate()
@@ -22,6 +25,12 @@ export default function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
   const [jobState, setJobState] = useState<Record<string, TaskState>>({})
   const { profile, saveProfile, error: profileError, clearError } = useProfile()
   const displayError = error || profileError
+  // A tarefa continua no banco: sair da tela só interrompe quem pergunta.
+  const montadoRef = useRef(true)
+
+  useEffect(() => () => {
+    montadoRef.current = false
+  }, [])
 
   const loadData = async () => {
     try {
@@ -45,7 +54,7 @@ export default function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
     const formData = new FormData(form)
     const file = formData.get('file')
     if (!(file instanceof File) || file.size === 0) {
-      setError('Selecione um PDF para submit.')
+      setError('Selecione um PDF para enviar.')
       return
     }
 
@@ -64,10 +73,15 @@ export default function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
       }))
       if (!result.quota_fits) {
         const continuar = window.confirm(
-          `A cota do dia não comporta a estimativa deste livro: ${result.estimated_texts} trechos estimados e ${result.quota_remaining} restantes. Deseja continuar?`,
+          `A cota do dia não comporta a estimativa deste livro: ${result.estimated_texts} trechos estimados e ${result.quota_remaining} restantes. Continuar mesmo assim?`,
         )
         if (!continuar) {
-          setBusy(false)
+          // O motor já recebeu o arquivo e criou a tarefa: desistir agora, sem
+          // apagar, deixaria um livro pela metade no acervo, sem ninguém
+          // acompanhando. Recusar é desfazer.
+          await deleteBook(result.book_id)
+          await loadData()
+          form.reset()
           return
         }
       }
@@ -81,26 +95,32 @@ export default function ProfilePage({ onSignOut }: { onSignOut: () => void }) {
     }
   }
 
+  /**
+   * Acompanha a tarefa até o fim. É esta consulta que move a ingestão — sem
+   * ninguém perguntando, o motor não processa o lote seguinte —, então o laço
+   * não tem teto: desistir no meio deixaria o livro pela metade. Quem para é a
+   * saída da tela; o ponto de continuação fica no banco e a corrente volta na
+   * próxima consulta.
+   */
   const pollJob = async (jobId: string) => {
-    const progress = await getJob(jobId)
+    while (montadoRef.current) {
+      const progress = await getJob(jobId)
+      if (!montadoRef.current) return
 
-    setJobState((current) => ({
-      ...current,
-      [jobId]: {
-        jobId,
-        bookId: String((progress as JobProgress).book_id ?? ''),
-        status: String((progress as JobProgress).state ?? 'queued'),
-        processed: Number((progress as JobProgress).processed ?? 0),
-        total: (progress as JobProgress).total ?? null,
-      },
-    }))
+      setJobState((current) => ({
+        ...current,
+        [jobId]: {
+          jobId,
+          bookId: progress.book_id,
+          status: progress.state,
+          processed: progress.processed,
+          total: progress.total,
+        },
+      }))
 
-    if ((progress as JobProgress).state === 'done' || (progress as JobProgress).state === 'failed') {
-      return
+      if (progress.state === 'done' || progress.state === 'failed') return
+      await new Promise((resolve) => setTimeout(resolve, INTERVALO_DA_TAREFA))
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    await pollJob(jobId)
   }
 
   const handleDelete = async (bookId: string) => {

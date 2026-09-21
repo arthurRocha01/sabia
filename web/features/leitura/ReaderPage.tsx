@@ -17,6 +17,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { formatError } from '../../api/client'
 import { connect } from '../../api/connect'
 import { fetchBookFile, listBooks } from '../../api/books'
+import { readerPageKey } from '../../storage'
 import type { Book, ConnectRequest, ConnectResponse, InterpretationResponse } from '../../api/types'
 import { useProfile } from '../../app/profile'
 import { usePrecision } from '../../app/precision'
@@ -39,7 +40,6 @@ const ZOOM_INICIAL = 1.3
 const ZOOM_MINIMO = 0.6
 const ZOOM_MAXIMO = 3
 const PASSO_ZOOM = 0.2
-const paginaStoragePrefix = 'sabia_reader_page:'
 
 type ReaderPageProps = {
   embedded?: boolean
@@ -101,6 +101,7 @@ export default function ReaderPage({
   const [card, setCard] = useState<InterpretationResponse | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [truncated, setTruncated] = useState(false)
   const [paginaRenderizada, setPaginaRenderizada] = useState(false)
   const [connectionsOpen, setConnectionsOpen] = useState(true)
   const [bookWidth, setBookWidth] = useState(0)
@@ -123,6 +124,10 @@ export default function ReaderPage({
   const pageRefs = useRef<Array<HTMLDivElement | null>>([])
   const bookStageRef = useRef<HTMLDivElement | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
+  // A tarefa de desenho em curso, por página. O pdf.js não aceita dois desenhos
+  // no mesmo canvas, e este efeito redesenha a cada mudança de largura, zoom ou
+  // página: sem cancelar o anterior, o segundo desenho falha e a folha some.
+  const tarefasDeDesenho = useRef<Array<pdfjs.RenderTask | null>>([])
   const desenhoRef = useRef(0)
   const pedidoRef = useRef(0)
   const buscaRef = useRef(0)
@@ -130,6 +135,14 @@ export default function ReaderPage({
   const selecaoPendenteRef = useRef<{ page: number; text: string } | null>(null)
   const [documentReady, setDocumentReady] = useState(false)
 
+  /**
+   * A rolagem do leitor é restaurada por três peças, e cada uma tem o seu dono:
+   * `scrollTopRef` guarda a última posição conhecida; a foto de `rolados`, no
+   * efeito de desenho, devolve a posição de qualquer contêiner que o desenho
+   * tenha empurrado; e `scrollRestorePendingRef` existe só para a virada de
+   * página no celular, onde quem rola é a página inteira. Quem mexer numa,
+   * confira as outras duas.
+   */
   const lerScrollAtual = () => Math.max(
     window.scrollY,
     document.scrollingElement?.scrollTop ?? 0,
@@ -236,12 +249,12 @@ export default function ReaderPage({
         // Uma citação tem prioridade; caso contrário, retoma a última página
         // visitada neste livro.
         const pedida = (local.state as { pagina?: number } | null)?.pagina
-        const salva = Number(localStorage.getItem(`${paginaStoragePrefix}${bookId}`))
+        const salva = Number(localStorage.getItem(readerPageKey(bookId)))
         const paginaSalva = Number.isInteger(salva) && salva >= 1 && salva <= documento.numPages ? salva : 1
         const inicial = pedida && pedida >= 1 && pedida <= documento.numPages ? pedida : paginaSalva
         setPage(inicial)
         setPageTarget(String(inicial))
-        localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(inicial))
+        localStorage.setItem(readerPageKey(bookId), String(inicial))
         setStatus('')
       } catch (caught) {
         if (!vivo) return
@@ -465,7 +478,15 @@ export default function ReaderPage({
         const contexto = canvas.getContext('2d')
         if (!contexto) throw new Error('Não foi possível preparar o canvas do PDF.')
         contexto.clearRect(0, 0, canvas.width, canvas.height)
-        await pagina.render({ canvas, canvasContext: contexto, viewport: nitida }).promise
+        const tarefa = pagina.render({ canvas, canvasContext: contexto, viewport: nitida })
+        tarefasDeDesenho.current[index] = tarefa
+        try {
+          await tarefa.promise
+        } catch (erro) {
+          // Desenho cancelado por um mais novo: não é falha, é a corrida.
+          if ((erro as { name?: string } | null)?.name === 'RenderingCancelledException') return
+          throw erro
+        }
         if (marca !== desenhoRef.current) return
 
         layer.replaceChildren()
@@ -499,6 +520,12 @@ export default function ReaderPage({
     })().catch((caught) => {
       if (marca === desenhoRef.current) mostrarErro(formatError(caught))
     })
+
+    // Antes do próximo desenho, o que estiver em curso é cancelado.
+    return () => {
+      for (const tarefa of tarefasDeDesenho.current) tarefa?.cancel()
+      tarefasDeDesenho.current = []
+    }
     // `documentReady` entra nas dependências porque trocar de livro pode manter
     // página, zoom e contagem iguais: sem ele, o desenho não é refeito e a tela
     // segue mostrando o livro anterior sob o título do novo.
@@ -693,7 +720,7 @@ export default function ReaderPage({
   }
 
   /** Ao soltar: o texto da região; sem texto na página, o recorte vira pergunta. */
-  const fimDaMarcacao = async (evento: ReactPointerEvent) => {
+  const fimDaMarcacao = async () => {
     const palco = bookStageRef.current
     const origem = origemDaMarcacao.current
     origemDaMarcacao.current = null
@@ -731,7 +758,6 @@ export default function ReaderPage({
       setStatus('')
       onReadingChange?.(false)
     }
-    void evento
   }
 
   const irPara = useCallback((numero: number) => {
@@ -750,7 +776,7 @@ export default function ReaderPage({
       )
     setPage(destino)
     setPageTarget(String(destino))
-    if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
+    if (bookId) localStorage.setItem(readerPageKey(bookId), String(destino))
   }, [bookId, pageCount, paginasVisiveis])
 
   /**
@@ -818,6 +844,7 @@ export default function ReaderPage({
     // A marca separa este pedido dos anteriores: resposta de seleção que já
     // não é a atual não se mostra.
     const marca = ++pedidoRef.current
+    setTruncated(false)
     setBusy(true)
     try {
       const payload: ConnectRequest = {
@@ -831,6 +858,7 @@ export default function ReaderPage({
       if (marca !== pedidoRef.current) return
       setHits(resposta.hits)
       setCard(resposta)
+      setTruncated(resposta.truncated)
       setError('')
     } catch (caught) {
       if (marca === pedidoRef.current) mostrarErro(formatError(caught))
@@ -977,7 +1005,6 @@ export default function ReaderPage({
                   page={page}
                   index={index}
                   pageCount={pageCount}
-                  zoom={zoom}
                   pageRef={(element) => { pageRefs.current[index] = element }}
                   canvasRef={(element) => { canvasRefs.current[index] = element }}
                   layerRef={(element) => { layerRefs.current[index] = element }}
@@ -995,6 +1022,7 @@ export default function ReaderPage({
             <TextSelection
               text={selectedText}
               busy={busy}
+              truncated={truncated}
               onChange={(text) => {
                 setSelectedText(text)
                 onSelectionChange?.(text)

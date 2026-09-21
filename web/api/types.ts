@@ -1,3 +1,8 @@
+/**
+ * O contrato do motor, espelhado aqui à mão. A fonte é `/openapi.json`, que o
+ * próprio motor publica: não há geração automática, e este arquivo anda junto
+ * com ele — quem mexer numa rota muda o tipo aqui no mesmo passo.
+ */
 export type Scope = 'others' | 'same'
 export type Relation = 'complement' | 'contradiction' | 'nuance' | 'same_concept'
 export type BookStatus = 'preparing' | 'ready' | 'failed'

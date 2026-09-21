@@ -4,8 +4,8 @@ import { formatError } from '../../api/client'
 import Tip from '../../ui/Tip'
 
 const SIZES = [
-  ['default', 'Padrão'],
-  ['long', 'Alto'],
+  ['default', 'Curto'],
+  ['long', 'Longo'],
   ['free', 'Livre'],
 ] as const
 
@@ -67,7 +67,7 @@ export default function InterpretationProfile({
       <div className="field-group card-length">
         <span className="field-label-with-help">
           Tamanho da interpretação
-          <Tip>Define o espaço esperado para o card: Padrão tem até três frases, Alto até oito e Livre deixa o modelo decidir.</Tip>
+          <Tip>Define o espaço esperado para o card: Curto tem até três frases, Longo até oito e Livre deixa o modelo decidir.</Tip>
         </span>
         <div className="segmented" role="group" aria-label="Tamanho da interpretação">
           {SIZES.map(([valor, rotulo]) => (

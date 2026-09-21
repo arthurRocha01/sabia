@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="auth-panel">
         <p className="eyebrow">Sabiá</p>
         <h1>Entrar</h1>
-        <p className="muted-copy">Use sua conta do Supabase para continuar.</p>
+        <p className="muted-copy">Entre com a conta da instalação para continuar.</p>
 
         <form className="stack-form" onSubmit={handleSubmit}>
           <label className="field-group">

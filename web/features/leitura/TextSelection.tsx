@@ -1,11 +1,13 @@
 type TextSelectionProps = {
   text: string
   busy: boolean
+  /** A última busca usou só o começo do trecho: o motor corta em 120 palavras. */
+  truncated: boolean
   onChange: (text: string) => void
   onSubmit: () => void
 }
 
-export default function TextSelection({ text, busy, onChange, onSubmit }: TextSelectionProps) {
+export default function TextSelection({ text, busy, truncated, onChange, onSubmit }: TextSelectionProps) {
   return (
     <div className="selection-box">
       <label className="field-group">
@@ -17,6 +19,9 @@ export default function TextSelection({ text, busy, onChange, onSubmit }: TextSe
           placeholder="Selecione um trecho no livro ou cole aqui."
         />
       </label>
+      {truncated ? (
+        <p className="muted-copy">A consulta é limitada a 120 palavras: o excedente foi cortado.</p>
+      ) : null}
       <button type="button" className="primary-button" onClick={onSubmit} disabled={busy}>
         {busy ? 'Buscando conexões…' : 'Buscar conexões'}
       </button>

@@ -5,6 +5,13 @@ import Indicator from '../../ui/Indicator'
 import TaskProgress from './TaskProgress'
 import type { TaskState } from './types'
 
+/** Os estados do motor, na língua de quem lê a tela. */
+const STATUS: Record<string, string> = {
+  preparing: 'em preparo',
+  ready: 'pronto',
+  failed: 'falhou',
+}
+
 /** O acervo: ficha, estado, progresso da ingestão, edição e remoção. */
 export default function BookList({
   books,
@@ -48,7 +55,7 @@ export default function BookList({
             </div>
 
             <div className="book-meta">
-              <span>{book.status}</span>
+              <span>{STATUS[book.status] ?? book.status}</span>
               <span>{book.n_chunks ?? 0} trechos</span>
               <span>{book.page_count ?? 0} páginas</span>
             </div>
@@ -58,7 +65,16 @@ export default function BookList({
               <button type="button" className="secondary-button" onClick={() => onOpen(book.id)}>
                 Abrir na consulta
               </button>
-              <button type="button" className="secondary-button warn" onClick={() => onDelete(book.id)}>
+              <button
+                type="button"
+                className="secondary-button warn"
+                onClick={() => {
+                  // Remover não tem volta: o arquivo e os trechos vão junto.
+                  if (window.confirm(`Remover "${book.title}" do acervo?`)) {
+                    onDelete(book.id)
+                  }
+                }}
+              >
                 Remover
               </button>
             </div>

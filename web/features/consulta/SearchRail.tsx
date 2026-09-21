@@ -1,7 +1,14 @@
-import type { ConnectResponse, InterpretationResponse } from '../../api/types'
+import type { ConnectResponse, InterpretationResponse, Scope } from '../../api/types'
 import Tip from '../../ui/Tip'
 import Indicator from '../../ui/Indicator'
 import InterpretationCard from './InterpretationCard'
+
+/**
+ * O teto da escala de precisão. O motor não impõe teto — só valida o piso entre
+ * 0 e 1 —, então este número é da tela: existe para o controle ter fim, e nunca
+ * fica abaixo do piso da instalação.
+ */
+const PRECISION_MAX = 0.95
 
 /** O rail: o trecho, o escopo, a count, a precisão e o card. */
 export default function SearchRail({
@@ -22,13 +29,14 @@ export default function SearchRail({
   onPrecision,
   onSearch,
   reading = false,
+  truncated = false,
   className = '',
 }: {
   text: string
-  scope: 'others' | 'same'
+  scope: Scope
   count: number
   precision: number | null
-  floor: number
+  floor: number | null
   card: InterpretationResponse | null
   error: string
   errorVersion: number
@@ -36,11 +44,12 @@ export default function SearchRail({
   busy: boolean
   booksLoading: boolean
   onText: (valor: string) => void
-  onScope: (valor: 'others' | 'same') => void
+  onScope: (valor: Scope) => void
   onCount: (valor: number) => void
   onPrecision: (valor: number) => void
   onSearch: () => void
   reading?: boolean
+  truncated?: boolean
   className?: string
 }) {
   return (
@@ -77,10 +86,16 @@ export default function SearchRail({
             </label>
           )}
 
+          {truncated ? (
+            <p className="rail-hint">
+              A consulta é limitada a 120 palavras: o excedente foi cortado.
+            </p>
+          ) : null}
+
           <div className="rail-row">
             <label className="rail-field rail-field-grow">
               <span>Escopo</span>
-              <select value={scope} onChange={(event) => onScope(event.target.value as 'others' | 'same')}>
+              <select value={scope} onChange={(event) => onScope(event.target.value as Scope)}>
                 <option value="others">Outros livros</option>
                 <option value="same">Só este livro</option>
               </select>
@@ -107,10 +122,11 @@ export default function SearchRail({
             </span>
             <input
               type="range"
-              min={floor}
-              max={0.95}
+              min={floor ?? 0}
+              max={Math.max(PRECISION_MAX, floor ?? 0)}
               step={0.01}
               value={precision ?? 0}
+              disabled={floor === null}
               onChange={(event) => onPrecision(Number(event.target.value))}
             />
           </label>

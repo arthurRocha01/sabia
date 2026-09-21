@@ -5,8 +5,11 @@ type Precision = {
   /** A precisão escolhida; nula enquanto o floor da instalação não chegou. */
   minScore: number | null
   setMinScore: (valor: number | null) => void
-  /** O floor da instalação: o menor valor permitido. */
-  floor: number
+  /**
+   * O piso da instalação: o menor valor permitido. Nulo enquanto o perfil não
+   * chega — e não zero, que seria um piso que a instalação não tem.
+   */
+  floor: number | null
 }
 
 const PrecisionContext = createContext<Precision | null>(null)
@@ -17,13 +20,13 @@ const PrecisionContext = createContext<Precision | null>(null)
  */
 export function PrecisionProvider({ children }: { children: ReactNode }) {
   const { profile } = useProfile()
-  const floor = profile?.min_score_floor ?? 0
+  const floor = profile?.min_score_floor ?? null
   const [minScore, setMinScore] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!profile) return
+    if (floor === null) return
     setMinScore((escolhido) => escolhido ?? floor)
-  }, [profile, floor])
+  }, [floor])
 
   return (
     <PrecisionContext.Provider value={{ minScore, setMinScore, floor }}>

@@ -4,7 +4,6 @@ type PdfPageProps = {
   page: number
   index: number
   pageCount: number
-  zoom: number
   pageRef: RefCallback<HTMLDivElement>
   canvasRef: RefCallback<HTMLCanvasElement>
   layerRef: RefCallback<HTMLDivElement>
@@ -15,7 +14,6 @@ export default function PdfPage({
   page,
   index,
   pageCount,
-  zoom,
   pageRef,
   canvasRef,
   layerRef,

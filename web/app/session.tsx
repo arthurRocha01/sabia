@@ -1,11 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient, type Session } from '@supabase/supabase-js'
-
-export const storageKey = 'sabia_session'
-export const tokenKey = 'sabia_token'
+import { sessionKey, tokenKey } from '../storage'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
 export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
 
 type SessionContextValue = {
@@ -19,11 +17,11 @@ const SessionContext = createContext<SessionContextValue | null>(null)
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [hasSession, setHasSession] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    return localStorage.getItem(storageKey) === 'active'
+    return localStorage.getItem(sessionKey) === 'active'
   })
 
   const signOut = () => {
-    localStorage.removeItem(storageKey)
+    localStorage.removeItem(sessionKey)
     localStorage.removeItem(tokenKey)
     setHasSession(false)
   }
@@ -68,7 +66,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         throw error ?? new Error('Sessão não criada.')
       }
 
-      localStorage.setItem(storageKey, 'active')
+      localStorage.setItem(sessionKey, 'active')
       localStorage.setItem(tokenKey, data.session.access_token)
       setHasSession(true)
     },
