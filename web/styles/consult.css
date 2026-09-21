@@ -117,7 +117,7 @@
 
 .consult-book .book-toolbar-header {
   max-width: 1060px;
-  margin: 0 auto 18px;
+  margin: 0 auto 12px;
   padding: 0 12px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 16px;
@@ -623,7 +623,9 @@
 
   .tool-header {
     gap: 8px;
-    padding: 0 2px 12px;
+    /* Era 2px: com o recuo do casco, o conteudo do cabecalho ficava a 10px da
+       borda e lia como encostado. */
+    padding: 0 12px 12px;
   }
 
   .tool-header .brand-tagline {
@@ -704,15 +706,20 @@
     display: block;
   }
 
+
   .consult-book {
     min-height: 0;
   }
 
   .consult-book .pdf-stage.open-book {
     grid-template-columns: 1fr;
-    width: 100%;
+    /* Descolado das bordas e centrado: o livro respira em vez de encostar na
+       tela. A largura define a escala da pagina, entao encolher aqui e o que
+       tira a sensacao de texto colado na borda. */
+    width: min(100% - 20px, 430px);
     min-height: 0;
     max-height: none;
+    margin: 12px auto 0;
     align-content: start;
     overflow: visible;
   }
@@ -750,11 +757,6 @@
     grid-template-columns: 1fr;
   }
 
-  .mobile-panel-close {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
   /* Com uma folha aberta, a faixa de abas deixa de flutuar no fim do fluxo e
      vira doca: fica presa no rodapé, e a folha aparece logo acima dela -- nunca
      sobre o livro, nem enquanto o livro ainda carrega e a faixa está no topo. */
@@ -773,7 +775,7 @@
     max-height: none;
     margin-top: 0;
     box-sizing: border-box;
-    padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+    padding: 6px max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom))
       max(8px, env(safe-area-inset-left));
     background: var(--surface);
     border-top: 1px solid var(--line);
@@ -822,7 +824,7 @@
   }
 
   :root {
-    --dock-height: 62px;
+    --dock-height: 56px;
   }
 
   .mobile-consult-actions {
@@ -842,10 +844,10 @@
   }
 
   .mobile-consult-actions.is-rising {
-    max-height: 76px;
-    margin-top: 22px;
-    padding-top: 12px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 58px;
+    margin-top: 10px;
+    padding-top: 6px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     opacity: 1;
     pointer-events: auto;
     transform: none;
@@ -982,6 +984,8 @@
     align-items: center;
     gap: 8px 10px;
     margin-bottom: 8px;
+    /* Mesmo recuo do cabecalho do app, para os dois comecarem na mesma linha. */
+    padding: 0 12px;
   }
 
   .consult-book .book-toolbar > div:first-child {
