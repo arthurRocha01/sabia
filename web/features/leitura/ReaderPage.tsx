@@ -879,9 +879,21 @@ export default function ReaderPage({
                 setMostrarDicaMarcacao(false)
               }}
               aria-pressed={marcando}
+              aria-label={marcando ? 'Cancelar a marcação' : 'Marcar trecho'}
+              title={marcando ? 'Cancelar a marcação' : 'Marcar trecho'}
             >
-              <span aria-hidden="true">{marcando ? '×' : '＋'}</span>
-              {marcando ? 'Cancelar' : 'Marcar trecho'}
+              {marcando ? (
+                <span className="mark-icon-x" aria-hidden="true">×</span>
+              ) : (
+                /* Lupa com linhas de texto dentro: ler um trecho da página, e
+                   não a lupa de pesquisar. */
+                <svg className="mark-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <circle cx="8.6" cy="8.6" r="5.1" />
+                  <path d="M12.4 12.4 17 17" />
+                  <path d="M6.3 7.4h4.6" />
+                  <path d="M6.3 9.6h3" />
+                </svg>
+              )}
             </button>
           </div>
 

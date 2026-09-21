@@ -621,19 +621,32 @@
     padding-bottom: 0;
   }
 
+  .tool-header {
+    gap: 8px;
+    padding: 0 2px 12px;
+  }
+
+  .tool-header .brand-tagline {
+    display: none;
+  }
+
+  .tool-header .brand-name {
+    font-size: 1.15rem;
+  }
+
   .consult-rail {
     display: none;
   }
 
   .consult-rail.is-mobile-open {
     position: fixed;
-    bottom: max(200px, calc(env(safe-area-inset-bottom) + 188px));
+    bottom: max(84px, calc(env(safe-area-inset-bottom) + 76px));
     left: 50%;
     width: min(380px, calc(100% - 24px));
     max-width: 380px;
     z-index: 30;
     display: grid;
-    max-height: calc(100dvh - 280px);
+    max-height: calc(100dvh - 130px);
     min-height: 0;
     overflow: auto;
     border-radius: 14px;
@@ -715,11 +728,11 @@
   .consult-connections.is-mobile-open {
     position: fixed;
     right: max(10px, env(safe-area-inset-right));
-    bottom: max(200px, calc(env(safe-area-inset-bottom) + 188px));
+    bottom: max(84px, calc(env(safe-area-inset-bottom) + 76px));
     left: max(10px, env(safe-area-inset-left));
     z-index: 30;
     display: block;
-    max-height: min(calc(76dvh - 120px), 560px);
+    max-height: min(calc(76dvh - 56px), 620px);
     overflow: auto;
     padding: 16px;
     border: 1px solid var(--line);
@@ -738,17 +751,34 @@
   }
 
   .mobile-consult-actions {
-    /* Nada fixo no celular: a faixa de baixo fica para o livro. As abas viram a
-       última linha do fluxo, e o que sobra embaixo é a reserva para um rodapé
-       futuro. */
+    /* As abas só entram no fluxo quando o leitor chega ao fim. */
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin: 22px 0 0;
-    padding: 12px max(8px, env(safe-area-inset-right))
-      calc(20px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left));
+    max-height: 0;
+    margin: 0;
+    padding: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    overflow: hidden;
     border-top: 1px solid var(--line);
-    background: transparent;
+    opacity: 0;
+    transform: translateY(22px);
+    pointer-events: none;
+    transition: max-height 0.26s ease, margin 0.26s ease, padding 0.26s ease, opacity 0.26s ease, transform 0.26s ease;
+  }
+
+  .mobile-consult-actions.is-rising {
+    max-height: 76px;
+    margin-top: 22px;
+    padding-top: 12px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .mobile-consult-end-sentinel {
+    height: 1px;
+    margin-top: 1px;
   }
 
   .mobile-consult-actions button {
@@ -908,6 +938,20 @@
   .consult-book .book-picker {
     flex: 1 1 auto;
     max-width: none;
+  }
+
+  .consult-book .mark-button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 7px 9px;
+    font-size: 0.7rem;
+  }
+
+  .consult-book .book-toolbar + .page-sem-texto,
+  .consult-book .book-toolbar + .marcacao-ajuda,
+  .consult-book .book-toolbar + .inline-error,
+  .consult-book .book-toolbar + .indicator {
+    margin-top: 0;
   }
 
   .consult-book .book-footer {

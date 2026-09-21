@@ -172,6 +172,23 @@ export default function ConsultPage() {
     setFindRequest((atual) => ({ id: (atual?.id ?? 0) + 1, text: valor }))
   }
 
+  /**
+   * As abas de Interpretação/Conexões sobem quando o leitor chega ao fim da
+   * página. O sentinela marca esse ponto: enquanto ele está fora da tela, a
+   * linha fica recolhida (o CSS cuida disso) e a página pertence ao livro.
+   */
+  useEffect(() => {
+    const sentinela = document.querySelector('.mobile-consult-end-sentinel')
+    const linha = document.querySelector('.mobile-consult-actions')
+    if (!sentinela || !linha) return
+    const observador = new IntersectionObserver(
+      ([entrada]) => linha.classList.toggle('is-rising', entrada.isIntersecting),
+      { rootMargin: '0px 0px -4px 0px' },
+    )
+    observador.observe(sentinela)
+    return () => observador.disconnect()
+  }, [])
+
   const alternarPainel = (painel: 'search' | 'connections') => {
     setMobilePanel((atual) => (atual === painel ? null : painel))
   }
@@ -242,6 +259,8 @@ export default function ConsultPage() {
           </section>
         </div>
       </main>
+      {/* Marca o ponto em que o leitor chegou ao fim: é o que faz as abas subirem. */}
+      <div className="mobile-consult-end-sentinel" aria-hidden="true" />
       <div className="mobile-consult-actions" aria-label="Painéis da consulta">
         <button
           type="button"
