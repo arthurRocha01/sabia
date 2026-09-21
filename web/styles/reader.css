@@ -70,18 +70,41 @@
 
 /* Aviso de página sem texto: capa e ilustração não têm trecho para selecionar. */
 .page-sem-texto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   max-width: 1080px;
   margin: 0 auto 8px;
-  padding: 8px 10px;
-  border: 1px dashed var(--line);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
   border-radius: 8px;
+  background: var(--surface);
   color: var(--ink-muted);
   font-size: 0.76rem;
-  text-align: center;
+  text-align: left;
 }
 
 .page-sem-texto strong {
+  display: block;
   color: var(--ink);
+}
+
+.page-sem-texto span {
+  display: block;
+  margin-top: 2px;
+}
+
+.page-sem-texto button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.72rem;
 }
 
 .textLayer {
@@ -531,4 +554,159 @@
   border-radius: 3px;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   pointer-events: none;
+}
+
+.mark-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.mark-button span {
+  color: var(--accent);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mark-button.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(91 141 239 / 10%);
+}
+
+.rail-reading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 7px;
+  background: var(--accent-soft);
+}
+
+.rail-reading strong,
+.rail-reading small {
+  display: block;
+}
+
+.rail-reading strong {
+  color: var(--ink);
+  font-size: 0.78rem;
+}
+
+.rail-reading small {
+  margin-top: 3px;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+}
+
+.rail-reading-spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 2px solid rgb(91 141 239 / 25%);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: reader-spin 800ms linear infinite;
+}
+
+@keyframes reader-spin {
+  to { transform: rotate(360deg); }
+}
+
+.marcacao-ajuda {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(74px, calc(env(safe-area-inset-bottom) + 66px));
+  z-index: 35;
+}
+
+.marcacao-ajuda-botao {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 65%, var(--line));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent));
+  color: var(--ink-muted);
+  font-family: var(--font-data);
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  opacity: 0.82;
+}
+
+.marcacao-ajuda-botao:hover,
+.marcacao-ajuda-botao:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  opacity: 1;
+  outline: none;
+}
+
+.marcacao-ajuda-popover {
+  position: absolute;
+  right: 0;
+  bottom: 46px;
+  display: grid;
+  gap: 10px;
+  width: min(280px, calc(100vw - 28px));
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 30%);
+}
+
+.marcacao-ajuda-popover button {
+  justify-self: end;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 560px) {
+  .page-sem-texto {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    margin-right: 8px;
+    margin-left: 8px;
+  }
+
+  .page-sem-texto button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .mark-button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .marcacao-ajuda {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
+  }
 }

@@ -9,7 +9,7 @@
  * mouse seleciona como em qualquer página.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -46,6 +46,7 @@ type ReaderPageProps = {
   bookIdOverride?: string
   externalSelectedText?: string
   onSelectionChange?: (text: string) => void
+  onReadingChange?: (reading: boolean) => void
   findRequest?: {
     id: number
     text: string
@@ -72,6 +73,7 @@ export default function ReaderPage({
   bookIdOverride,
   externalSelectedText,
   onSelectionChange,
+  onReadingChange,
   findRequest,
 }: ReaderPageProps) {
   const { profile } = useProfile()
@@ -104,6 +106,10 @@ export default function ReaderPage({
   const [bookWidth, setBookWidth] = useState(0)
   const [errorVersion, setErrorVersion] = useState(0)
   const [errorDismissing, setErrorDismissing] = useState(false)
+  const [mostrarDicaMarcacao, setMostrarDicaMarcacao] = useState(false)
+  const scrollTopRef = useRef(0)
+  const scrollRestorePendingRef = useRef<number | null>(null)
+  const restaurandoScrollRef = useRef(false)
 
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([])
   const layerRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -123,6 +129,35 @@ export default function ReaderPage({
   const ultimaBuscaRef = useRef(0)
   const selecaoPendenteRef = useRef<{ page: number; text: string } | null>(null)
   const [documentReady, setDocumentReady] = useState(false)
+
+  const lerScrollAtual = () => Math.max(
+    window.scrollY,
+    document.scrollingElement?.scrollTop ?? 0,
+  )
+
+  useEffect(() => {
+    const registrarScroll = () => {
+      if (!restaurandoScrollRef.current && scrollRestorePendingRef.current === null) {
+        scrollTopRef.current = lerScrollAtual()
+      }
+    }
+    scrollTopRef.current = window.scrollY
+    window.addEventListener('scroll', registrarScroll, { passive: true })
+    return () => window.removeEventListener('scroll', registrarScroll)
+  }, [])
+
+  useLayoutEffect(() => {
+    if (window.innerWidth > 560) return
+    const destino = scrollRestorePendingRef.current ?? scrollTopRef.current
+    if (destino <= 0) return
+    restaurandoScrollRef.current = true
+    window.scrollTo({ top: destino, left: 0, behavior: 'auto' })
+    if (document.scrollingElement) document.scrollingElement.scrollTop = destino
+    scrollRestorePendingRef.current = null
+    window.requestAnimationFrame(() => {
+      restaurandoScrollRef.current = false
+    })
+  })
   const mostrarErro = (mensagem: string) => {
     setError(mensagem)
     setErrorDismissing(false)
@@ -671,6 +706,7 @@ export default function ReaderPage({
     const imagem = recorteDaRegiao(regiao)
     if (!imagem) return
     setStatus('lendo o recorte…')
+    onReadingChange?.(true)
     try {
       const lido = (await readImage(imagem)).replace(/\s+/g, ' ').trim()
       if (lido) {
@@ -683,12 +719,18 @@ export default function ReaderPage({
       mostrarErro(formatError(caught))
     } finally {
       setStatus('')
+      onReadingChange?.(false)
     }
     void evento
   }
 
   const irPara = useCallback((numero: number) => {
     if (!Number.isFinite(numero)) return
+    if (window.innerWidth <= 560) {
+      const atual = lerScrollAtual()
+      scrollTopRef.current = atual
+      scrollRestorePendingRef.current = atual
+    }
     const solicitado = Math.min(Math.max(1, Math.trunc(numero)), Math.max(1, pageCount))
     const destino = paginasVisiveis === 1
       ? solicitado
@@ -700,6 +742,49 @@ export default function ReaderPage({
     setPageTarget(String(destino))
     if (bookId) localStorage.setItem(`${paginaStoragePrefix}${bookId}`, String(destino))
   }, [bookId, pageCount, paginasVisiveis])
+
+  /**
+   * Passar a página com o dedo. O gesto horizontal substitui os botões no
+   * celular — e, com ele, os controles não precisam disputar a faixa de baixo
+   * com as abas da consulta. Um arraste para a esquerda avança, para a direita
+   * volta, e um arraste mais vertical que horizontal é rolagem: não conta.
+   */
+  useEffect(() => {
+    const palco = bookStageRef.current
+    if (!palco) return
+
+    let inicio: { x: number; y: number; quando: number } | null = null
+
+    const aoTocar = (evento: TouchEvent) => {
+      const toque = evento.touches[0]
+      if (marcando || !toque) return
+      inicio = { x: toque.clientX, y: toque.clientY, quando: Date.now() }
+    }
+
+    const aoSoltar = (evento: TouchEvent) => {
+      const ponto = evento.changedTouches[0]
+      const partida = inicio
+      inicio = null
+      if (!partida || !ponto) return
+      const deslocamentoX = ponto.clientX - partida.x
+      const deslocamentoY = ponto.clientY - partida.y
+      const rapido = Date.now() - partida.quando < 700
+      if (Math.abs(deslocamentoX) < 45 || !rapido) return
+      if (Math.abs(deslocamentoY) > Math.abs(deslocamentoX) * 0.6) return
+      // Para voltar, o dedo tem de começar longe da borda esquerda: ali quem
+      // escuta é o gesto de voltar do próprio navegador, e ele ganha.
+      if (deslocamentoX > 0 && partida.x < 110) return
+      irPara(page + (deslocamentoX < 0 ? paginasVisiveis : -paginasVisiveis))
+    }
+
+    palco.addEventListener('touchstart', aoTocar, { passive: true })
+    palco.addEventListener('touchend', aoSoltar, { passive: true })
+    return () => {
+      palco.removeEventListener('touchstart', aoTocar)
+      palco.removeEventListener('touchend', aoSoltar)
+    }
+  }, [irPara, marcando, page, paginasVisiveis])
+
 
   useEffect(() => {
     if (pageCount === 0 || paginasVisiveis === 1) return
@@ -786,21 +871,48 @@ export default function ReaderPage({
             </label>
             <button
               type="button"
-              className="ghost-button mark-button"
+              className={`mark-button${marcando ? ' is-active' : ''}`}
               onClick={() => {
-                setMarcando((atual) => !atual)
+                const proximo = !marcando
+                setMarcando(proximo)
                 setCaixaDaMarcacao(null)
+                setMostrarDicaMarcacao(false)
               }}
               aria-pressed={marcando}
             >
+              <span aria-hidden="true">{marcando ? '×' : '＋'}</span>
               {marcando ? 'Cancelar' : 'Marcar trecho'}
             </button>
           </div>
 
           {paginasComTexto.length > 0 && paginasComTexto.every((tem) => !tem) ? (
-            <p className="page-sem-texto">
-              Esta página não tem texto — é uma imagem. Use <strong>Próxima</strong> para chegar a uma página com texto.
-            </p>
+            <div className="page-sem-texto" role="status">
+              <div>
+                <strong>Esta página é uma imagem.</strong>
+                <span>Marque uma faixa para tentar ler o trecho da imagem.</span>
+              </div>
+              <button type="button" onClick={() => irPara(page + paginasVisiveis)} disabled={page + paginasVisiveis > pageCount}>
+                Próxima página
+              </button>
+            </div>
+          ) : null}
+          {marcando ? (
+            <div className="marcacao-ajuda" role="status">
+              <button
+                type="button"
+                className="marcacao-ajuda-botao"
+                aria-label="Como marcar um trecho"
+                aria-expanded={mostrarDicaMarcacao}
+                onClick={() => setMostrarDicaMarcacao((aberta) => !aberta)}
+              >
+                ?
+              </button>
+              {mostrarDicaMarcacao ? (
+                <div className="marcacao-ajuda-popover">
+                  <span>Arraste uma faixa vertical sobre o trecho. A largura da página é automática.</span>
+                </div>
+              ) : null}
+            </div>
           ) : null}
           {error ? <p key={errorVersion} className={`inline-error${errorDismissing ? ' is-dismissing' : ''}`} role="alert" aria-live="assertive">{error}</p> : null}
           {status ? <Indicator label={status} /> : null}

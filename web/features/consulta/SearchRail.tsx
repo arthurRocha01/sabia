@@ -21,6 +21,7 @@ export default function SearchRail({
   onCount,
   onPrecision,
   onSearch,
+  reading = false,
   className = '',
 }: {
   text: string
@@ -39,6 +40,7 @@ export default function SearchRail({
   onCount: (valor: number) => void
   onPrecision: (valor: number) => void
   onSearch: () => void
+  reading?: boolean
   className?: string
 }) {
   return (
@@ -55,15 +57,25 @@ export default function SearchRail({
         <section className="rail-view">
           <p className="rail-intro">Encontre o que outros autores dizem sobre uma ideia do livro.</p>
 
-          <label className="rail-field">
-            <span>Trecho para buscar</span>
-            <textarea
-              rows={5}
-              value={text}
-              onChange={(event) => onText(event.target.value)}
-              placeholder="Cole aqui um trecho ou selecione uma passagem no livro"
-            />
-          </label>
+          {reading ? (
+            <div className="rail-reading" role="status" aria-live="polite">
+              <span className="rail-reading-spinner" aria-hidden="true" />
+              <div>
+                <strong>Lendo o trecho da imagem…</strong>
+                <small>Isso pode levar alguns segundos.</small>
+              </div>
+            </div>
+          ) : (
+            <label className="rail-field">
+              <span>Trecho para buscar</span>
+              <textarea
+                rows={5}
+                value={text}
+                onChange={(event) => onText(event.target.value)}
+                placeholder="Cole aqui um trecho ou selecione uma passagem no livro"
+              />
+            </label>
+          )}
 
           <div className="rail-row">
             <label className="rail-field rail-field-grow">

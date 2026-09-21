@@ -40,6 +40,7 @@ export default function ConsultPage() {
   const [errorVersion, setErrorVersion] = useState(0)
   const [errorDismissing, setErrorDismissing] = useState(false)
   const [mobilePanel, setMobilePanel] = useState<'search' | 'connections' | null>(null)
+  const [readingSelection, setReadingSelection] = useState(false)
   const requestedBookId = searchParams.get('book') ?? ''
   const { profile } = useProfile()
   // A precisão é a mesma da leitura: vive no provedor, não nesta tela.
@@ -201,6 +202,7 @@ export default function ConsultPage() {
           busy={loadingConnections}
           booksLoading={loadingBooks}
           onText={aoDigitar}
+          reading={readingSelection}
           onScope={setScope}
           onCount={setK}
           onPrecision={setMinScore}
@@ -215,6 +217,7 @@ export default function ConsultPage() {
                 bookIdOverride={bookId}
                 externalSelectedText={text}
                 onSelectionChange={aoSelecionarNoLivro}
+                onReadingChange={setReadingSelection}
                 findRequest={findRequest}
               />
             ) : (

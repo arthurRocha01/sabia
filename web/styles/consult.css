@@ -607,11 +607,18 @@
 }
 
 @media (max-width: 560px) {
+  .workspace-shell {
+    width: calc(100% - 24px);
+    padding-right: 0;
+    padding-left: 0;
+    padding-bottom: 16px;
+  }
+
   .consult-layout {
     position: relative;
     display: block;
     padding-top: 14px;
-    padding-bottom: 76px;
+    padding-bottom: 0;
   }
 
   .consult-rail {
@@ -620,13 +627,13 @@
 
   .consult-rail.is-mobile-open {
     position: fixed;
-    bottom: max(66px, calc(env(safe-area-inset-bottom) + 58px));
+    bottom: max(200px, calc(env(safe-area-inset-bottom) + 188px));
     left: 50%;
     width: min(380px, calc(100% - 24px));
     max-width: 380px;
     z-index: 30;
     display: grid;
-    max-height: calc(100dvh - 150px);
+    max-height: calc(100dvh - 280px);
     min-height: 0;
     overflow: auto;
     border-radius: 14px;
@@ -708,11 +715,11 @@
   .consult-connections.is-mobile-open {
     position: fixed;
     right: max(10px, env(safe-area-inset-right));
-    bottom: max(66px, calc(env(safe-area-inset-bottom) + 58px));
+    bottom: max(200px, calc(env(safe-area-inset-bottom) + 188px));
     left: max(10px, env(safe-area-inset-left));
     z-index: 30;
     display: block;
-    max-height: min(76dvh, 680px);
+    max-height: min(calc(76dvh - 120px), 560px);
     overflow: auto;
     padding: 16px;
     border: 1px solid var(--line);
@@ -731,20 +738,17 @@
   }
 
   .mobile-consult-actions {
-    position: fixed;
-    right: max(10px, env(safe-area-inset-right));
-    bottom: max(10px, env(safe-area-inset-bottom));
-    left: max(10px, env(safe-area-inset-left));
-    z-index: 40;
+    /* Nada fixo no celular: a faixa de baixo fica para o livro. As abas viram a
+       última linha do fluxo, e o que sobra embaixo é a reserva para um rodapé
+       futuro. */
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    padding: 8px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
-    backdrop-filter: blur(10px);
+    margin: 22px 0 0;
+    padding: 12px max(8px, env(safe-area-inset-right))
+      calc(20px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left));
+    border-top: 1px solid var(--line);
+    background: transparent;
   }
 
   .mobile-consult-actions button {
@@ -847,6 +851,36 @@
 }
 
 @media (max-width: 560px) {
+  .consult-layout {
+    width: 100%;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .consult-book {
+    width: 100%;
+    padding-right: 0;
+    padding-left: 0;
+    overflow: visible;
+  }
+
+  .consult-book .pdf-frame {
+    width: calc(100% - 16px);
+    max-width: none;
+    margin: 0 8px;
+  }
+
+  .consult-book .pdf-stage.open-book {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    border: 1px solid #293746;
+    border-radius: 8px;
+  }
+
   /* A fileira tem três filhos e nenhum encolhia: com vãos de 24px a soma
      passava da largura da tela e o botão de seleção era empurrado para fora,
      ficando cortado. Aqui o título ocupa a linha inteira e os controles
@@ -877,25 +911,41 @@
   }
 
   .consult-book .book-footer {
+    /* O rodapé vive no fim da página, no fluxo: aparece quando o leitor chega
+       ao fim, que é quando ele precisa virar a página. A barra de abas sai de
+       cena nesse momento, e as duas não disputam o mesmo espaço. */
+    z-index: 8;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(54px, auto) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
-    width: 100%;
-    padding: 12px 4px max(12px, env(safe-area-inset-bottom));
+    width: calc(100% - 16px);
+    margin: 0 8px;
+    padding: 10px max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    border: 1px solid var(--line);
+    border-radius: 10px 10px 0 0;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    box-shadow: 0 -8px 20px rgb(0 0 0 / 18%);
+    backdrop-filter: blur(10px);
+  }
+
+  /* No celular a página se vira com o gesto: os botões do rodapé só roubariam
+     espaço do livro. */
+  .consult-book .book-footer {
+    display: none;
   }
 
   .consult-book .book-footer .page-button {
     width: 100%;
     min-width: 0;
     min-height: 44px;
-    padding: 8px 6px;
+    padding: 8px 4px;
     white-space: nowrap;
     font-size: 11px;
   }
 
   .consult-book .book-progress {
-    min-width: 62px;
+    min-width: 54px;
     justify-content: center;
     gap: 4px;
     font-size: 10px;
@@ -907,10 +957,14 @@
 }
 
 @media (max-width: 400px) {
+  .workspace-shell {
+    width: calc(100% - 16px);
+  }
+
   .consult-book .book-footer {
     gap: 5px;
-    padding-right: 0;
-    padding-left: 0;
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-left: max(6px, env(safe-area-inset-left));
   }
 
   .consult-book .book-footer .page-button {
