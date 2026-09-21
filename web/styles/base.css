@@ -13,7 +13,6 @@
   --scrollbar-track: #11161D;
   --scrollbar-thumb: #354252;
   --scrollbar-thumb-hover: #4A5D76;
-  --danger: #EF4444;
   --font-interface: 'Inter', sans-serif;
   --font-book: 'Source Serif 4', Georgia, serif;
   --font-data: 'JetBrains Mono', ui-monospace, monospace;
@@ -105,19 +104,10 @@ textarea {
   background: var(--bg);
 }
 
+/* A largura e o respiro do casco são da consulta, que declara `.workspace-shell`
+   em consult.css, arquivo posterior: aqui fica só o que centraliza a coluna. */
 .workspace-shell {
-  width: min(1280px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 32px 0 48px;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 0 6px 18px;
-  border-bottom: 1px solid var(--line);
 }
 
 .brand-block {
@@ -140,26 +130,7 @@ textarea {
   color: var(--ink-muted);
 }
 
-.main-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.nav-link {
-  color: var(--ink-muted);
-  padding: 0.55rem 0.8rem;
-  border-radius: 999px;
-  transition: background 150ms ease, color 150ms ease;
-}
-
-.nav-link.active,
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink);
-}
-
-.workspace-grid, .reader-layout, .consult-layout {
+.workspace-grid, .reader-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
   gap: 24px;
@@ -243,8 +214,7 @@ textarea {
 }
 
 .upload-form,
-.stack-form,
-.query-box {
+.stack-form {
   display: grid;
   gap: 16px;
   margin-top: 18px;
@@ -602,11 +572,6 @@ textarea {
   letter-spacing: -0.06em;
 }
 
-.pdf-shell {
-  display: grid;
-  gap: 12px;
-}
-
 .pdf-toolbar {
   display: flex;
   align-items: center;
@@ -656,18 +621,6 @@ textarea {
   font-size: 0.7rem;
 }
 
-.compact-viewer .pdf-stage {
-  padding: 12px;
-}
-
-.pdf-canvas {
-  width: 100%;
-  min-height: 620px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f5f5f5;
-}
-
 .selection-box {
   margin-top: 18px;
   display: grid;
@@ -699,19 +652,13 @@ textarea {
   text-align: left;
 }
 
-.query-controls {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
 .result-card.emphasis {
   background: rgba(91, 141, 239, 0.08);
   border-color: rgba(91, 141, 239, 0.3);
 }
 
 @media (max-width: 920px) {
-  .workspace-grid, .reader-layout, .consult-layout {
+  .workspace-grid, .reader-layout {
     grid-template-columns: 1fr;
   }
 
@@ -727,14 +674,8 @@ textarea {
       min-height: 100dvh;
     }
 
-    .workspace-shell {
-      width: min(100% - 24px, 1050px);
-      padding-top: 20px;
-    }
-
     .workspace-grid,
-    .reader-layout,
-    .consult-layout {
+    .reader-layout {
       gap: 16px;
     }
 
@@ -750,8 +691,7 @@ textarea {
     button,
     input,
     select,
-    .profile-link,
-    .nav-link {
+    .profile-link {
       min-height: 44px;
     }
 
@@ -765,21 +705,7 @@ textarea {
     }
   }
 
-  @media (max-width: 400px) {
-    .workspace-shell {
-      width: calc(100% - 16px);
-    }
-
-    .brand-tagline {
-      display: none;
-    }
-  }
-
-  .topbar {
-    flex-wrap: wrap;
-  }
-
-  .inline-edit, .query-controls {
+  .inline-edit {
     grid-template-columns: 1fr;
   }
 }

@@ -176,10 +176,6 @@
   user-select: none;
 }
 
-.textLayer.selecting .endOfContent {
-  top: 0;
-}
-
 .textLayer {
   user-select: text;
   -webkit-user-select: text;
@@ -210,29 +206,6 @@
   font-family: var(--font-data);
   font-size: 0.76rem;
   white-space: nowrap;
-}
-
-.mode-switch {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface);
-}
-
-.mode-switch a {
-  padding: 6px 11px;
-  border-radius: 5px;
-  color: var(--ink-muted);
-  font-size: 0.76rem;
-}
-
-.mode-switch a.active,
-.mode-switch a:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
 }
 
 .profile-link {
@@ -318,15 +291,6 @@
   min-height: calc(100vh - 130px);
 }
 
-.embedded-reader {
-  min-width: 0;
-}
-
-.embedded-reader .viewer-panel {
-  min-height: calc(100vh - 130px);
-  padding: 16px;
-}
-
 .connections-title h2 {
   margin: 0;
   font-size: 1.55rem;
@@ -394,7 +358,6 @@
       text-overflow: ellipsis;
     }
 
-    .mode-switch a,
     .profile-link {
       min-height: 44px;
     }
@@ -424,11 +387,6 @@
     .minimal-pdf-toolbar .ghost-button {
       min-width: 44px;
       min-height: 44px;
-    }
-
-    .embedded-reader .viewer-panel {
-      min-height: 0;
-      padding: 0;
     }
 
     .consult-book .book-toolbar {
@@ -522,11 +480,6 @@
     grid-row: 2;
   }
 
-  .mode-switch {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
   .profile-link {
     grid-column: 2;
     grid-row: 2;
@@ -601,7 +554,7 @@
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--ink);
-  box-shadow: 0 0 0 3px rgb(91 141 239 / 10%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .rail-reading {
@@ -635,7 +588,7 @@
   width: 18px;
   height: 18px;
   flex: 0 0 18px;
-  border: 2px solid rgb(91 141 239 / 25%);
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: reader-spin 800ms linear infinite;

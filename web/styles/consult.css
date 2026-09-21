@@ -10,6 +10,7 @@
 }
 
 .consult-layout {
+  display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 26px;
   padding-top: 28px;
@@ -44,40 +45,9 @@
   font-size: 20px;
 }
 
-.consult-rail > .rail-intro,
-.consult-rail > .field-group,
-.consult-rail > .rail-row,
-.consult-rail > .primary-button,
-.consult-rail > .rail-hint,
-.consult-rail > .inline-error,
-.consult-rail > .consult-results {
-  margin-right: 18px;
-  margin-left: 18px;
-}
-
-.consult-rail > .rail-intro {
-  margin-top: 18px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.consult-rail > .field-group,
-.consult-rail > .rail-row {
-  margin-bottom: 13px;
-}
-
-.consult-rail > .primary-button {
-  width: calc(100% - 36px);
-  min-height: 40px;
-  border-radius: 6px;
-  font-size: 12px;
-}
-
-.consult-rail > .rail-hint {
-  margin-top: 11px;
-  font-size: 11px;
-}
+/* A goteira lateral do rail não se declara aqui: os filhos diretos do rail são
+   apenas `.rail-header` e `.rail-content`, e quem abre as laterais é o
+   `padding` do `.rail-content`, mais abaixo. */
 
 .consult-rail .result-card {
   border-radius: 7px;
@@ -115,27 +85,6 @@
   box-shadow: none;
 }
 
-.consult-book .book-toolbar-header {
-  max-width: 1060px;
-  margin: 0 auto 12px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 16px;
-}
-
-.consult-book .book-toolbar-header h1 {
-  font-size: 24px;
-}
-
-.consult-book .book-toolbar-header select {
-  min-width: 178px;
-}
-
-.consult-book .pdf-frame {
-  max-width: 1060px;
-  margin: 0 auto;
-}
-
 .consult-book .pdf-stage {
   max-height: calc(100vh - 215px);
   min-height: 650px;
@@ -145,44 +94,16 @@
   background: var(--surface);
 }
 
-.consult-book .pdf-stage.open-book {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: start;
-  justify-content: center;
-  gap: 1px;
-  padding: 0;
-  overflow: auto;
-  background: var(--surface-strong);
-  border-color: var(--line);
-}
-
 .consult-book .open-book .pdf-page {
   position: relative;
-  justify-self: center;
   min-height: 0;
-  margin: 0;
-  background: #fff;
-  box-shadow: none;
-}
-
-.consult-book .open-book .pdf-page-left {
-  border-radius: 4px 0 0 4px;
-}
-
-.consult-book .open-book .pdf-page-right {
-  border-radius: 0 4px 4px 0;
 }
 
 .consult-book .open-book .book-page-number {
   position: absolute;
-  top: 12px;
   left: 0;
   z-index: 2;
   width: 100%;
-  color: #9aa4b2;
-  font-family: var(--font-data);
-  font-size: 0.68rem;
   text-align: center;
 }
 
@@ -193,24 +114,6 @@
 
 .consult-book .open-book.is-loading {
   min-height: 650px;
-}
-
-@media (max-width: 800px) {
-  .consult-book .pdf-stage.open-book {
-    grid-template-columns: 1fr;
-  }
-
-  .consult-book .open-book .pdf-page-right[hidden] {
-    display: none;
-  }
-
-  .consult-book .open-book .pdf-page {
-    border-radius: 4px;
-  }
-
-  .consult-book .open-book::after {
-    display: none;
-  }
 }
 
 @media (max-width: 1050px) {
@@ -299,7 +202,7 @@
 .consult-book .book-picker select:focus {
   border-color: var(--accent);
   box-shadow:
-    0 0 0 3px rgb(91 141 239 / 14%),
+    0 0 0 3px var(--accent-soft),
     inset 0 1px 0 rgb(255 255 255 / 3%);
 }
 
@@ -312,7 +215,10 @@
 .consult-book .pdf-stage.open-book {
   position: relative;
   display: grid;
+  /* Duas colunas no desktop; uma folha só abaixo de 800px, no bloco do fim. */
   grid-template-columns: 1fr 1fr;
+  align-items: start;
+  justify-content: center;
   max-width: none;
   min-height: 650px;
   max-height: none;
@@ -347,7 +253,7 @@
     0 1px 0 rgb(255 255 255 / 85%);
 }
 
-.consult-book .open-book .pdf-page-left {
+.consult-book .open-book .book-page-left {
   border-right: 1px solid var(--line);
   border-radius: 7px 0 0 7px;
   box-shadow:
@@ -368,7 +274,7 @@
   margin: 0 auto;
 }
 
-.consult-book .open-book .pdf-page-right {
+.consult-book .open-book .book-page-right {
   border-radius: 0 7px 7px 0;
   box-shadow:
     inset 14px 0 20px -18px rgb(17 24 31 / 78%),
@@ -405,6 +311,46 @@
   border: 1px solid rgb(255 255 255 / 7%);
   border-radius: 5px 9px 9px 5px;
   pointer-events: none;
+}
+
+/* Com uma folha só, o vinco do meio não existe: a lombada vai para a borda
+   esquerda, como num livro fechado, e a folha curva para dentro dela. Este
+   bloco fica depois da definição do livro aberto de propósito — é a última
+   palavra sobre a folha única, e a ordem do arquivo é quem decide. */
+@media (max-width: 800px) {
+  .consult-book .pdf-stage.open-book {
+    grid-template-columns: 1fr;
+  }
+
+  .consult-book .open-book .pdf-page {
+    justify-self: stretch;
+    border-radius: 3px 7px 7px 3px;
+    box-shadow:
+      inset 16px 0 22px -20px rgb(17 24 31 / 82%),
+      inset 0 0 18px rgb(32 39 46 / 12%),
+      0 1px 0 rgb(255 255 255 / 62%);
+  }
+
+  .consult-book .open-book .pdf-page[hidden] {
+    display: none;
+  }
+
+  .consult-book .open-book::after {
+    content: '';
+    display: block;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    /* z-index acima da camada de texto do pdf.js: sem isto o lombo fica atrás
+       dela e não aparece. */
+    z-index: 5;
+    width: 9px;
+    transform: none;
+    /* Mesma receita do lombo do desktop, girada para a borda esquerda: escuro na
+       lombada, clareando para dentro, onde a folha curva. */
+    background: linear-gradient(90deg, rgb(8 12 16 / 62%), rgb(8 12 16 / 26%) 55%, rgb(8 12 16 / 6%));
+    box-shadow: none;
+  }
 }
 
 .consult-book .book-footer {
@@ -446,10 +392,6 @@
   display: block;
   height: 100%;
   background: var(--accent);
-}
-
-.consult-rail .scope-field {
-  margin-top: 12px;
 }
 
 .consult-rail .rail-content {
@@ -713,47 +655,11 @@
 
   .consult-book .pdf-stage.open-book {
     grid-template-columns: 1fr;
-    /* Descolado das bordas e centrado: o livro respira em vez de encostar na
-       tela. A largura define a escala da pagina, entao encolher aqui e o que
-       tira a sensacao de texto colado na borda. */
-    width: min(100% - 20px, 430px);
     min-height: 0;
     max-height: none;
     margin: 12px auto 0;
     align-content: start;
     overflow: visible;
-  }
-
-  .consult-book .open-book .pdf-page {
-    justify-self: stretch;
-    /* Uma página só não recebia nada do tratamento de papel que o desktop dá à
-       página direita -- e ficava um retângulo branco chapado. O lombo passa para
-       a borda esquerda, onde ele fica num livro fechado, e a folha curva para
-       dentro dele. */
-    border-radius: 3px 7px 7px 3px;
-    box-shadow:
-      inset 16px 0 22px -20px rgb(17 24 31 / 82%),
-      inset 0 0 18px rgb(32 39 46 / 12%),
-      0 1px 0 rgb(255 255 255 / 62%);
-  }
-
-  /* O lombo do desktop é o vinco entre as duas páginas. Com uma página só, ele
-     vira a lombada: a mesma linguagem, na borda esquerda. */
-  .consult-book .open-book::after {
-    content: '';
-    display: block;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    /* z-index acima da camada de texto do pdf.js: sem isto o lombo fica atrás
-       dela e não aparece. */
-    z-index: 5;
-    width: 9px;
-    transform: none;
-    /* Mesma receita do lombo do desktop, girada para a borda esquerda: escuro na
-       lombada, clareando para dentro, onde a folha curva. */
-    background: linear-gradient(90deg, rgb(8 12 16 / 62%), rgb(8 12 16 / 26%) 55%, rgb(8 12 16 / 6%));
-    box-shadow: none;
   }
 
   .consult-connections {
@@ -1043,28 +949,8 @@
 
   .consult-book .book-toolbar + .page-sem-texto,
   .consult-book .book-toolbar + .marcacao-ajuda,
-  .consult-book .book-toolbar + .inline-error,
-  .consult-book .book-toolbar + .indicator {
+  .consult-book .book-toolbar + .inline-error {
     margin-top: 0;
-  }
-
-  .consult-book .book-footer {
-    /* O rodapé vive no fim da página, no fluxo: aparece quando o leitor chega
-       ao fim, que é quando ele precisa virar a página. A barra de abas sai de
-       cena nesse momento, e as duas não disputam o mesmo espaço. */
-    z-index: 8;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(54px, auto) minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
-    width: calc(100% - 16px);
-    margin: 0 8px;
-    padding: 10px max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-    border: 1px solid var(--line);
-    border-radius: 10px 10px 0 0;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    box-shadow: 0 -8px 20px rgb(0 0 0 / 18%);
-    backdrop-filter: blur(10px);
   }
 
   /* No celular a página se vira com o gesto: os botões do rodapé só roubariam
@@ -1072,45 +958,11 @@
   .consult-book .book-footer {
     display: none;
   }
-
-  .consult-book .book-footer .page-button {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: 8px 4px;
-    white-space: nowrap;
-    font-size: 11px;
-  }
-
-  .consult-book .book-progress {
-    min-width: 54px;
-    justify-content: center;
-    gap: 4px;
-    font-size: 10px;
-  }
-
-  .consult-book .book-progress .progress-track {
-    display: none;
-  }
 }
 
 @media (max-width: 400px) {
   .workspace-shell {
     width: calc(100% - 16px);
-  }
-
-  .consult-book .book-footer {
-    gap: 5px;
-    padding-right: max(6px, env(safe-area-inset-right));
-    padding-left: max(6px, env(safe-area-inset-left));
-  }
-
-  .consult-book .book-footer .page-button {
-    font-size: 10px;
-  }
-
-  .consult-book .book-progress {
-    min-width: 56px;
   }
 }
 
