@@ -726,6 +726,34 @@
 
   .consult-book .open-book .pdf-page {
     justify-self: stretch;
+    /* Uma página só não recebia nada do tratamento de papel que o desktop dá à
+       página direita -- e ficava um retângulo branco chapado. O lombo passa para
+       a borda esquerda, onde ele fica num livro fechado, e a folha curva para
+       dentro dele. */
+    border-radius: 3px 7px 7px 3px;
+    box-shadow:
+      inset 16px 0 22px -20px rgb(17 24 31 / 82%),
+      inset 0 0 18px rgb(32 39 46 / 12%),
+      0 1px 0 rgb(255 255 255 / 62%);
+  }
+
+  /* O lombo do desktop é o vinco entre as duas páginas. Com uma página só, ele
+     vira a lombada: a mesma linguagem, na borda esquerda. */
+  .consult-book .open-book::after {
+    content: '';
+    display: block;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    /* z-index acima da camada de texto do pdf.js: sem isto o lombo fica atrás
+       dela e não aparece. */
+    z-index: 5;
+    width: 9px;
+    transform: none;
+    /* Mesma receita do lombo do desktop, girada para a borda esquerda: escuro na
+       lombada, clareando para dentro, onde a folha curva. */
+    background: linear-gradient(90deg, rgb(8 12 16 / 62%), rgb(8 12 16 / 26%) 55%, rgb(8 12 16 / 6%));
+    box-shadow: none;
   }
 
   .consult-connections {
